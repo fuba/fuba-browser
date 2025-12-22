@@ -1,0 +1,59 @@
+{
+  "name": "fuba-browser",
+  "version": "0.1.0",
+  "description": "Browser automation tool with REST API for LLM agents",
+  "main": "dist/main/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "npm run build && electron .",
+    "build": "tsc",
+    "start": "npm run build && electron .",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "package": "electron-builder",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/fuba/fuba-browser.git"
+  },
+  "keywords": [
+    "browser",
+    "automation",
+    "rest-api",
+    "electron",
+    "chromium"
+  ],
+  "author": "fuba",
+  "license": "CC0-1.0",
+  "bugs": {
+    "url": "https://github.com/fuba/fuba-browser/issues"
+  },
+  "homepage": "https://github.com/fuba/fuba-browser#readme",
+  "devDependencies": {
+    "@types/chrome-remote-interface": "^0.33.0",
+    "@types/node": "^25.0.3",
+    "@types/turndown": "^5.0.6",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.12",
+    "eslint": "^9.39.2",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "chrome-remote-interface": "^0.33.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "puppeteer-core": "^24.34.0",
+    "turndown": "^7.2.2"
+  }
+}
