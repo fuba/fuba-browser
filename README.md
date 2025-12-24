@@ -14,6 +14,8 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 - Cookie persistence and session management
 - Web VNC for remote GUI access
 - Docker-based deployment with X11 support
+- Japanese font support (Noto Sans CJK & Noto Serif CJK)
+- Configurable resource limits for heavy websites
 
 ## Quick Start
 
@@ -35,6 +37,19 @@ docker-compose up
 - **API Server**: Express
 - **Browser Control**: Chrome DevTools Protocol
 - **Remote Access**: noVNC + x11vnc
+- **Fonts**: Noto Sans CJK JP, Noto Serif CJK JP
+
+## Resource Configuration
+
+The container is configured with generous resource limits to handle heavy websites like Amazon:
+
+- **Memory Limit**: 10GB
+- **Memory Reservation**: 4GB
+- **CPU Limit**: 4 cores
+- **CPU Reservation**: 2 cores
+- **Shared Memory**: 2GB
+
+These settings can be adjusted in `docker-compose.yml` based on your system resources.
 
 ## Documentation
 
