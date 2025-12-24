@@ -1,8 +1,10 @@
-import { app, BrowserWindow, protocol } from 'electron';
+import electron from 'electron';
+import type { BrowserWindow as BrowserWindowType } from 'electron';
+const { app, BrowserWindow, protocol } = electron;
 import { startApiServer } from '../server/index.js';
 import { BrowserController } from '../browser/controller.js';
 
-let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindowType | null = null;
 let browserController: BrowserController | null = null;
 
 async function createWindow() {

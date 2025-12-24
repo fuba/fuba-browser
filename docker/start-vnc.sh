@@ -10,10 +10,10 @@ sleep 2
 DISPLAY=:99 fluxbox &
 
 # Start x11vnc
-x11vnc -display :99 -forever -usepw -shared -rfbport 5900 -rfbauth /home/app/.vnc/passwd &
+x11vnc -display :99 -forever -nopw -shared -rfbport 5900 &
 
-# Start noVNC
-/usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 6080 &
+# Start noVNC (websockify)
+/usr/bin/websockify --web /usr/share/novnc 6080 localhost:5900 &
 
 # Start the application
-DISPLAY=:99 node /app/dist/main/index.js
+DISPLAY=:99 /app/node_modules/.bin/electron /app/dist/main/index.js

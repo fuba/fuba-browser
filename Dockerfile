@@ -54,8 +54,7 @@ RUN useradd -ms /bin/bash app
 
 # Set up VNC and noVNC
 RUN mkdir -p /home/app/.vnc /home/app/.fluxbox
-RUN echo "fuba-browser" | vncpasswd -f > /home/app/.vnc/passwd
-RUN chmod 600 /home/app/.vnc/passwd
+# Create VNC password file (x11vnc can use -usepw without vncpasswd)
 RUN chown -R app:app /home/app
 
 # Create app directory
