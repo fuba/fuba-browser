@@ -10,7 +10,7 @@ let browserController: BrowserController | null = null;
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
-    height: 800,
+    height: 2000,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
