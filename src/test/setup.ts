@@ -25,7 +25,7 @@ export async function setup() {
   browserController = new BrowserController(testWindow);
   
   // Start API server on test port
-  apiApp = await startApiServer(3001, browserController);
+  apiApp = await startApiServer(39001, browserController);
   
   return { testWindow, browserController, apiApp };
 }

@@ -2,11 +2,11 @@ services:
   fuba-browser:
     build: .
     ports:
-      - "3000:3000"   # REST API
-      - "5900:5900"   # VNC
-      - "6080:6080"   # Web VNC (noVNC)
+      - "39000:39000"   # REST API
+      - "5900:5900"     # VNC
+      - "6080:6080"     # Web VNC (noVNC)
     environment:
-      - API_PORT=3000
+      - API_PORT=39000
       - VNC_PASSWORD=fuba-browser
       - DISPLAY=:99
       - ELECTRON_DISABLE_SANDBOX=1

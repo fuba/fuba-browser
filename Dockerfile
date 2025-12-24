@@ -83,7 +83,7 @@ RUN chown -R app:app /app
 USER app
 
 # Expose ports
-EXPOSE 3000 5900 6080
+EXPOSE 39000 5900 6080
 
 # Environment variables
 ENV DISPLAY=:99 \

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-const API_BASE = 'http://localhost:3001';
+const API_BASE = 'http://localhost:39001';
 
 describe('API Tests', () => {
   describe('Health Check', () => {

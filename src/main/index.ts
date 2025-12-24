@@ -24,7 +24,7 @@ async function createWindow() {
   await mainWindow.loadURL('about:blank');
   
   // Start API server
-  const apiPort = process.env.API_PORT || 3000;
+  const apiPort = process.env.API_PORT || 39000;
   await startApiServer(Number(apiPort), browserController);
   
   console.log(`API server started on port ${apiPort}`);

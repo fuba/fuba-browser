@@ -19,7 +19,7 @@ npm run build
 npm start
 ```
 
-The browser window will open, and the REST API will be available at `http://localhost:3000`.
+The browser window will open, and the REST API will be available at `http://localhost:39000`.
 
 ### Running with Docker (Linux)
 
@@ -34,7 +34,7 @@ docker-compose up
 ```
 
 Access points:
-- REST API: `http://localhost:3000`
+- REST API: `http://localhost:39000`
 - VNC: `vnc://localhost:5900` (password: fuba-browser)
 - Web VNC: `http://localhost:6080`
 
@@ -47,7 +47,7 @@ import requests
 import json
 
 # Base URL for Fuba Browser API
-BASE_URL = "http://localhost:3000"
+BASE_URL = "http://localhost:39000"
 
 # Navigate to a website
 response = requests.post(f"{BASE_URL}/api/navigate", json={
