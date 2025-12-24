@@ -5,17 +5,13 @@
   "main": "dist/main/index.js",
   "type": "module",
   "scripts": {
-    "dev": "npm run build && electron .",
     "build": "tsc",
-    "start": "npm run build && electron .",
-    "test": "vitest",
-    "test:watch": "vitest --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
-    "package": "electron-builder",
-    "docker:build": "docker-compose build",
-    "docker:up": "docker-compose up",
-    "docker:down": "docker-compose down"
+    "start": "docker-compose up",
+    "stop": "docker-compose down",
+    "logs": "docker-compose logs -f",
+    "rebuild": "docker-compose build --no-cache"
   },
   "repository": {
     "type": "git",
@@ -43,8 +39,7 @@
     "electron": "^39.2.7",
     "electron-builder": "^26.0.12",
     "eslint": "^9.39.2",
-    "typescript": "^5.9.3",
-    "vitest": "^3.2.4"
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@types/cors": "^2.8.19",

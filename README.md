@@ -1,10 +1,10 @@
 # Fuba Browser
 
-Browser automation tool with REST API for LLM agents
+Docker-based browser automation tool with REST API for LLM agents
 
 ## Overview
 
-Fuba Browser is a Chromium-based desktop application that provides a REST API for browser automation, designed specifically for use with LLM agents like Claude Code. It solves the token consumption problem of Chrome DevTools MCP by offering a streamlined REST API interface.
+Fuba Browser is a Chromium-based browser automation tool that runs in Docker and provides a REST API for LLM agents like Claude Code. It solves the token consumption problem of Chrome DevTools MCP by offering a streamlined REST API interface with Web VNC access.
 
 ## Features
 
@@ -12,20 +12,35 @@ Fuba Browser is a Chromium-based desktop application that provides a REST API fo
 - Page content extraction as extended Markdown format
 - Element coordinate and identification information
 - Cookie persistence and session management
-- Desktop GUI with user interaction capability
-- Web VNC for remote GUI access (planned)
-- Operation recording for future LLM learning (planned)
+- Web VNC for remote GUI access
+- Docker-based deployment with X11 support
+
+## Quick Start
+
+```bash
+# Build and start
+docker-compose up
+
+# Access points:
+# - REST API: http://localhost:39000
+# - Web VNC: http://localhost:6080
+# - VNC: vnc://localhost:5900
+```
 
 ## Architecture
 
-- **Frontend**: Electron + Chromium
+- **Container**: Docker with X11/Xvfb
+- **Browser**: Electron + Chromium
 - **Backend**: Node.js + TypeScript
-- **API Server**: Express/Fastify
+- **API Server**: Express
 - **Browser Control**: Chrome DevTools Protocol
+- **Remote Access**: noVNC + x11vnc
 
-## Development Status
+## Documentation
 
-This project is in active development. See [doc/Tasks.md](doc/Tasks.md) for the development roadmap.
+- [API Reference](doc/API.md)
+- [Usage Guide](doc/USAGE.md)
+- [Development Guide](doc/DEVELOPMENT.md)
 
 ## License
 

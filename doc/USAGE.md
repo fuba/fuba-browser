@@ -1,27 +1,6 @@
 # Fuba Browser Usage Guide
 
-## Quick Start
-
-### Running Locally (Mac/Windows/Linux)
-
-1. Install dependencies:
-```bash
-npm install
-```
-
-2. Build the project:
-```bash
-npm run build
-```
-
-3. Start the application:
-```bash
-npm start
-```
-
-The browser window will open, and the REST API will be available at `http://localhost:39000`.
-
-### Running with Docker (Linux)
+## Quick Start with Docker
 
 1. Build the Docker image:
 ```bash
