@@ -84,6 +84,9 @@ USER app
 # Expose ports
 EXPOSE 39000 5900 6080
 
+# Set VNC password default
+ENV VNC_PASSWORD=fuba-browser
+
 # Environment variables
 ENV DISPLAY=:99 \
     ELECTRON_DISABLE_SANDBOX=1 \

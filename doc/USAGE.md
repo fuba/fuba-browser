@@ -14,8 +14,8 @@ docker-compose up
 
 Access points:
 - REST API: `http://localhost:39000`
+- Web VNC: `http://localhost:39001`
 - VNC: `vnc://localhost:5900` (password: fuba-browser)
-- Web VNC: `http://localhost:6080`
 
 ## Using with LLM Agents
 
