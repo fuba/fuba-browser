@@ -1,0 +1,8 @@
+# Default owner for everything
+* @fuba
+
+# Security-critical files require owner review
+.github/ @fuba
+Dockerfile @fuba
+docker/ @fuba
+.env* @fuba
