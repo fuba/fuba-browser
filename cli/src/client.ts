@@ -169,19 +169,11 @@ export class FubaClient {
 
   // Get page info
   async getTitle(): Promise<ApiResponse<{ title: string }>> {
-    const result = await this.get<{ title: string }>('/api/session');
-    if (result.success && result.data) {
-      return { success: true, data: { title: (result.data as { title: string }).title } };
-    }
-    return result as ApiResponse<{ title: string }>;
+    return this.get('/api/get/title');
   }
 
   async getUrl(): Promise<ApiResponse<{ url: string }>> {
-    const result = await this.get<{ url: string }>('/api/session');
-    if (result.success && result.data) {
-      return { success: true, data: { url: (result.data as { url: string }).url } };
-    }
-    return result as ApiResponse<{ url: string }>;
+    return this.get('/api/get/url');
   }
 
   // Cookies
