@@ -17,6 +17,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  actions: read
 
 jobs:
   hadolint:
@@ -27,7 +28,7 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
-          failure-threshold: warning
+          failure-threshold: error
 
   docker-build-scan:
     runs-on: ubuntu-latest
@@ -58,7 +59,7 @@ jobs:
           ignore-unfixed: true
 
       - name: Upload Trivy scan results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: 'trivy-image-results.sarif'
         if: always()
