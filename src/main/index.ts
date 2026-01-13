@@ -1,15 +1,21 @@
 import electron from 'electron';
 import type { BrowserWindow as BrowserWindowType } from 'electron';
-const { app, BrowserWindow, protocol, Menu } = electron;
+const { app, BrowserWindow, protocol, Menu, session } = electron;
 import { startApiServer } from '../server/index.js';
 import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
+
+// Use a standard Chrome User-Agent to avoid detection as Electron
+const CHROME_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
 
 let mainWindow: BrowserWindowType | null = null;
 let browserController: BrowserController | null = null;
 let snapshotGenerator: SnapshotGenerator | null = null;
 
 async function createWindow() {
+  // Set User-Agent before creating window
+  session.defaultSession.setUserAgent(CHROME_USER_AGENT);
+
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 2000,
@@ -20,6 +26,9 @@ async function createWindow() {
     },
     title: 'Fuba Browser'
   });
+
+  // Override User-Agent for all requests
+  mainWindow.webContents.setUserAgent(CHROME_USER_AGENT);
 
   // Initialize browser controller and snapshot generator
   browserController = new BrowserController(mainWindow);
