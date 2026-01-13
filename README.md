@@ -79,6 +79,7 @@ fbb snapshot [options]  # Get accessibility snapshot with refs
 ### Interaction
 ```bash
 fbb click <selector>    # Click element (CSS selector or @ref)
+fbb dblclick <selector> # Double-click element
 fbb type <selector> <text>
 fbb fill <selector> <text>
 fbb hover <selector>
@@ -86,6 +87,7 @@ fbb focus <selector>
 fbb check <selector>
 fbb uncheck <selector>
 fbb select <selector> <value>
+fbb scroll <direction> [px]
 ```
 
 ### Wait
@@ -111,9 +113,12 @@ fbb get url
 fbb get text <selector>
 fbb get html <selector>
 fbb get value <selector>
+fbb get attr <selector> <attr>
 fbb get count <selector>
+fbb get box <selector>
 fbb is visible <selector>
 fbb is enabled <selector>
+fbb is checked <selector>
 ```
 
 ### Storage
@@ -132,6 +137,12 @@ fbb state load <path>   # Load saved state
 fbb state info          # Show current state info
 ```
 
+### Content
+```bash
+fbb content             # Get page content (HTML, markdown, elements)
+fbb elements            # Get interactive elements
+```
+
 ### Debug
 ```bash
 fbb eval <script>       # Execute JavaScript
@@ -139,6 +150,7 @@ fbb highlight <selector>
 fbb console
 fbb errors
 fbb screenshot [path]
+fbb health              # Check API server health
 ```
 
 ## Architecture
@@ -165,6 +177,7 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 
 ## Documentation
 
+- [CLI Reference](cli/README.md)
 - [API Reference](doc/API.md)
 - [Usage Guide](doc/USAGE.md)
 - [Development Guide](doc/DEVELOPMENT.md)
