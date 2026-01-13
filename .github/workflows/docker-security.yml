@@ -49,7 +49,7 @@ jobs:
         run: docker build -t fuba-browser:${{ github.sha }} .
 
       - name: Run Trivy image scan
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@0.33.1
         with:
           image-ref: 'fuba-browser:${{ github.sha }}'
           format: 'sarif'
