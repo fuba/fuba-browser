@@ -39,6 +39,10 @@ npm link
 ### Open URL
 ```bash
 fbb open https://example.com
+
+# Aliases
+fbb goto https://example.com
+fbb navigate https://example.com
 ```
 
 ### Get Page Snapshot (Accessibility Tree)
@@ -99,6 +103,12 @@ fbb click "#submit"      # CSS selector
 fbb click @e1            # Ref from snapshot
 ```
 
+### Double-Click
+```bash
+fbb dblclick "#item"     # CSS selector
+fbb dblclick @e1         # Ref from snapshot
+```
+
 ### Type & Fill
 ```bash
 fbb type "#search" "query"     # Append text
@@ -124,8 +134,10 @@ fbb select "#country" "JP"
 
 ### Scroll
 ```bash
-fbb scroll down            # Scroll down 300px
-fbb scroll up              # Scroll up 300px
+fbb scroll down            # Scroll down 100px (default)
+fbb scroll up              # Scroll up 100px
+fbb scroll left            # Scroll left 100px
+fbb scroll right           # Scroll right 100px
 fbb scroll down 500        # Scroll down 500px
 fbb scroll up 200          # Scroll up 200px
 ```
@@ -157,7 +169,7 @@ fbb wait load networkidle     # Network idle
 
 ### Wait Timeout
 ```bash
-fbb wait timeout 2000         # Wait 2 seconds
+fbb wait timeout 2000         # Wait 2 seconds (alias: fbb wait delay 2000)
 ```
 
 ---
@@ -166,12 +178,14 @@ fbb wait timeout 2000         # Wait 2 seconds
 
 ### Get Element Data
 ```bash
-fbb get title              # Page title
-fbb get url                # Current URL
-fbb get text "#message"    # Element text
-fbb get html "#container"  # Element HTML
-fbb get value "#input"     # Input value
-fbb get count ".items"     # Element count
+fbb get title                       # Page title
+fbb get url                         # Current URL
+fbb get text "#message"             # Element text
+fbb get html "#container"           # Element HTML
+fbb get value "#input"              # Input value
+fbb get count ".items"              # Element count
+fbb get attr "#link" "href"         # Element attribute
+fbb get box "#button"               # Element bounding box (x, y, width, height)
 ```
 
 ### Check Element State
@@ -187,11 +201,12 @@ fbb is checked "#checkbox"
 
 ### Keyboard
 ```bash
-fbb press Enter
+fbb press Enter          # Press Enter key (alias: fbb key Enter)
 fbb press Tab
 fbb press "Control+c"
-fbb keydown Shift
-fbb keyup Shift
+fbb press "Shift+Tab"
+fbb keydown Shift        # Hold down Shift
+fbb keyup Shift          # Release Shift
 ```
 
 ### Mouse
@@ -270,6 +285,27 @@ fbb state load ~/auth/example.json --navigate
 
 ---
 
+## Content Commands
+
+### Get Page Content
+```bash
+fbb content              # Get full page content (HTML, markdown, elements)
+```
+
+Returns page content including:
+- HTML source
+- Markdown representation
+- Interactive elements
+
+### Get Interactive Elements
+```bash
+fbb elements             # Get list of interactive elements
+```
+
+Returns a list of interactive elements on the page (buttons, links, inputs, etc.).
+
+---
+
 ## Debug Commands
 
 ### Console Logs
@@ -302,6 +338,17 @@ fbb highlight "#target"  # Highlight element in browser
 fbb screenshot                    # Save to screenshot.png
 fbb screenshot output.png         # Custom filename
 ```
+
+---
+
+## Health Check
+
+### Check API Server Status
+```bash
+fbb health               # Check if API server is running
+```
+
+Returns server status and version information.
 
 ---
 

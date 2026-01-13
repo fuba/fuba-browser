@@ -10,6 +10,36 @@ const program = new Command();
 // Global client instance
 let client: FubaClient;
 
+// Show brief help when no arguments provided
+function showBriefHelp(): void {
+  console.log(`fbb - CLI for fuba-browser automation
+
+Usage: fbb [options] <command>
+
+Quick Start:
+  fbb open <url>              Navigate to a URL
+  fbb snapshot -i             Get interactive elements
+  fbb click <selector>        Click an element (@ref or CSS)
+  fbb fill <selector> <text>  Fill text into an element
+  fbb screenshot [path]       Take a screenshot
+
+Common Commands:
+  Navigation:   open, snapshot
+  Interaction:  click, type, fill, hover, scroll
+  Information:  get title|url|text, is visible|enabled
+  Wait:         wait selector|text|url|load
+  State:        state save|load|info, cookies, storage
+
+Options:
+  --host <host>   API host (default: localhost)
+  --port <port>   API port (default: 39000)
+  --json          Output in JSON format
+  -h, --help      Show full help
+
+Run 'fbb --help' for all commands, or 'fbb <command> --help' for command details.
+`);
+}
+
 program
   .name('fbb')
   .description('CLI for fuba-browser automation')
@@ -885,4 +915,10 @@ stateCmd
   });
 
 // Parse and execute
+// If no arguments provided, show brief help and exit successfully
+if (process.argv.length <= 2) {
+  showBriefHelp();
+  process.exit(0);
+}
+
 program.parse();
