@@ -169,6 +169,10 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 - [Usage Guide](doc/USAGE.md)
 - [Development Guide](doc/DEVELOPMENT.md)
 
+## Acknowledgments
+
+The API design and CLI tool were inspired by [vercel-labs/agent-browser](https://github.com/vercel-labs/agent-browser). The Snapshot/Ref system for accessibility tree-based element targeting is based on their approach.
+
 ## License
 
 CC0 (Creative Commons Zero)
