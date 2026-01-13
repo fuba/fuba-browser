@@ -1,28 +1,29 @@
 import express, { Express, Request, Response } from 'express';
 import cors from 'cors';
 import { BrowserController } from '../browser/controller.js';
+import { SnapshotGenerator } from '../browser/snapshot.js';
 import { setupRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/error.js';
 
-export async function startApiServer(port: number, browserController: BrowserController): Promise<Express> {
+export async function startApiServer(port: number, browserController: BrowserController, snapshotGenerator: SnapshotGenerator): Promise<Express> {
   const app = express();
-  
+
   // Middleware
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
-  
+
   // Health check
   app.get('/health', (_req: Request, res: Response) => {
     res.json({ status: 'ok', version: '0.1.0' });
   });
-  
+
   // Setup routes
-  setupRoutes(app, browserController);
-  
+  setupRoutes(app, browserController, snapshotGenerator);
+
   // Error handler
   app.use(errorHandler);
-  
+
   return new Promise((resolve, reject) => {
     app.listen(port, () => {
       console.log(`REST API server listening on port ${port}`);

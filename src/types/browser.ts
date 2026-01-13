@@ -55,3 +55,54 @@ export interface ApiResponse<T = any> {
   data?: T;
   error?: string;
 }
+
+export interface PdfExportOptions {
+  // Page layout options
+  landscape?: boolean;
+  printBackground?: boolean;
+  scale?: number;
+
+  // Paper size options (in microns, default A4)
+  paperWidth?: number;
+  paperHeight?: number;
+
+  // Margin options (in microns)
+  marginTop?: number;
+  marginBottom?: number;
+  marginLeft?: number;
+  marginRight?: number;
+
+  // Page range (e.g., "1-5, 8, 11-13")
+  pageRanges?: string;
+
+  // Timestamp options
+  timestamp?: {
+    enabled: boolean;
+    format?: string;         // Date format (default: "YYYY-MM-DD HH:mm:ss")
+    position?: 'header' | 'footer';
+    align?: 'left' | 'center' | 'right';
+  };
+
+  // Header/Footer options
+  displayHeaderFooter?: boolean;
+  headerTemplate?: string;
+  footerTemplate?: string;
+}
+
+export interface PdfExportResult {
+  success: boolean;
+  size: number;
+  url: string;
+  title: string;
+  timestamp?: string;
+}
+
+// Browser state for saving/loading authentication
+export interface BrowserState {
+  version: string;
+  timestamp: string;
+  url: string;
+  cookies: Electron.Cookie[];
+  localStorage: Record<string, string>;
+  sessionStorage: Record<string, string>;
+}

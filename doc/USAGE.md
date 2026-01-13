@@ -2,12 +2,7 @@
 
 ## Quick Start with Docker
 
-1. Build the Docker image:
-```bash
-docker-compose build
-```
-
-2. Start the container:
+1. Build and start the container:
 ```bash
 docker-compose up
 ```
@@ -17,6 +12,299 @@ Access points:
 - Web VNC: `http://localhost:39001`
 - VNC: `vnc://localhost:5900` (password: fuba-browser)
 
+## CLI Tool (`fbb`)
+
+### Installation
+
+```bash
+cd cli
+npm install
+npm link
+```
+
+### Global Options
+
+```bash
+--host <host>       # API host (default: localhost)
+--port <port>       # API port (default: 39000)
+--json              # JSON output
+--timeout <ms>      # Timeout
+--debug             # Debug output
+```
+
+---
+
+## Navigation Commands
+
+### Open URL
+```bash
+fbb open https://example.com
+```
+
+### Get Page Snapshot (Accessibility Tree)
+```bash
+# Basic snapshot
+fbb snapshot
+
+# Interactive elements only
+fbb snapshot -i
+
+# Compact mode (remove empty nodes)
+fbb snapshot -c
+
+# Limit depth
+fbb snapshot -d 3
+
+# Scope to selector
+fbb snapshot -s "#main"
+
+# JSON output
+fbb snapshot --json
+
+# Combine options
+fbb snapshot -i -c --json
+```
+
+---
+
+## Snapshot/Ref System
+
+The snapshot command returns an accessibility tree with element refs. Each element has a unique ref (e.g., `@e1`, `@e2`) that can be used for fast, deterministic targeting.
+
+### Example Workflow
+```bash
+# 1. Get snapshot
+fbb snapshot -i
+
+# Output:
+# @e1 link "Home"
+# @e2 button "Login"
+# @e3 textbox "Email"
+# @e4 textbox "Password"
+
+# 2. Interact using refs
+fbb click @e2        # Click login button
+fbb fill @e3 "user@example.com"
+fbb fill @e4 "password"
+fbb click @e2        # Submit
+```
+
+---
+
+## Interaction Commands
+
+### Click
+```bash
+fbb click "#submit"      # CSS selector
+fbb click @e1            # Ref from snapshot
+```
+
+### Type & Fill
+```bash
+fbb type "#search" "query"     # Append text
+fbb fill "#email" "user@example.com"  # Clear and type
+```
+
+### Hover & Focus
+```bash
+fbb hover "#menu-item"
+fbb focus "#input-field"
+```
+
+### Checkbox
+```bash
+fbb check "#agree"
+fbb uncheck "#newsletter"
+```
+
+### Select Dropdown
+```bash
+fbb select "#country" "JP"
+```
+
+### Scroll
+```bash
+fbb scroll down            # Scroll down 300px
+fbb scroll up              # Scroll up 300px
+fbb scroll down 500        # Scroll down 500px
+fbb scroll up 200          # Scroll up 200px
+```
+
+---
+
+## Wait Commands
+
+### Wait for Element
+```bash
+fbb wait selector "#loading-complete"
+```
+
+### Wait for Text
+```bash
+fbb wait text "Success"
+```
+
+### Wait for URL
+```bash
+fbb wait url "**/dashboard"
+```
+
+### Wait for Page Load
+```bash
+fbb wait load                 # DOM content loaded
+fbb wait load networkidle     # Network idle
+```
+
+### Wait Timeout
+```bash
+fbb wait timeout 2000         # Wait 2 seconds
+```
+
+---
+
+## Information Commands
+
+### Get Element Data
+```bash
+fbb get title              # Page title
+fbb get url                # Current URL
+fbb get text "#message"    # Element text
+fbb get html "#container"  # Element HTML
+fbb get value "#input"     # Input value
+fbb get count ".items"     # Element count
+```
+
+### Check Element State
+```bash
+fbb is visible "#modal"
+fbb is enabled "#submit"
+fbb is checked "#checkbox"
+```
+
+---
+
+## Keyboard & Mouse Commands
+
+### Keyboard
+```bash
+fbb press Enter
+fbb press Tab
+fbb press "Control+c"
+fbb keydown Shift
+fbb keyup Shift
+```
+
+### Mouse
+```bash
+fbb mouse move 100 200         # Move to coordinates
+fbb mouse wheel 300            # Scroll down
+fbb mouse wheel -300           # Scroll up
+```
+
+---
+
+## Storage Commands
+
+### localStorage
+```bash
+fbb storage local list             # List all keys
+fbb storage local get token        # Get value
+fbb storage local set token "abc"  # Set value
+fbb storage local clear            # Clear all
+```
+
+### sessionStorage
+```bash
+fbb storage session list
+fbb storage session get key
+fbb storage session set key "value"
+fbb storage session clear
+```
+
+### Cookies
+```bash
+fbb cookies list          # List all cookies
+fbb cookies clear         # Clear all cookies
+```
+
+---
+
+## State Management (Authentication)
+
+Save and restore browser state (cookies, localStorage, sessionStorage) for authentication persistence.
+
+### Save State
+```bash
+fbb state save auth.json
+```
+
+### Load State
+```bash
+fbb state load auth.json              # Load state only
+fbb state load auth.json --navigate   # Load and navigate to saved URL
+```
+
+### State Info
+```bash
+fbb state info
+```
+
+### Example: Login Once, Use Forever
+```bash
+# 1. Login manually or via automation
+fbb open https://example.com/login
+fbb fill @e1 "username"
+fbb fill @e2 "password"
+fbb click @e3
+
+# 2. Wait for login to complete
+fbb wait url "**/dashboard"
+
+# 3. Save authentication state
+fbb state save ~/auth/example.json
+
+# 4. Later, restore the session
+fbb state load ~/auth/example.json --navigate
+# Now you're logged in without re-authenticating!
+```
+
+---
+
+## Debug Commands
+
+### Console Logs
+```bash
+fbb console              # Show console logs
+```
+
+### JavaScript Errors
+```bash
+fbb errors               # Show JavaScript errors
+```
+
+### Execute JavaScript
+```bash
+fbb eval "document.title"
+fbb eval "window.scrollTo(0, 1000)"
+```
+
+### Highlight Element
+```bash
+fbb highlight "#target"  # Highlight element in browser
+```
+
+---
+
+## Screenshot & Export
+
+### Screenshot
+```bash
+fbb screenshot                    # Save to screenshot.png
+fbb screenshot output.png         # Custom filename
+```
+
+---
+
 ## Using with LLM Agents
 
 ### Example: Claude Code Integration
@@ -25,27 +313,37 @@ Access points:
 import requests
 import json
 
-# Base URL for Fuba Browser API
 BASE_URL = "http://localhost:39000"
 
 # Navigate to a website
-response = requests.post(f"{BASE_URL}/api/navigate", json={
+requests.post(f"{BASE_URL}/api/navigate", json={
     "url": "https://example.com"
 })
 
-# Get page content as Markdown
-response = requests.get(f"{BASE_URL}/api/content")
-content = response.json()
-markdown = content["data"]["markdown"]
-elements = content["data"]["elements"]
+# Get accessibility snapshot with refs
+response = requests.get(f"{BASE_URL}/api/snapshot?interactive=true")
+snapshot = response.json()
 
-# Find and click a button
-for element in elements:
-    if element["tagName"] == "button" and "Submit" in element["text"]:
-        requests.post(f"{BASE_URL}/api/click", json={
-            "selector": element["selector"]
+# Find and click element by ref
+for ref, element in snapshot["data"]["refs"].items():
+    if element["role"] == "button" and "Submit" in element.get("name", ""):
+        requests.post(f"{BASE_URL}/api/action", json={
+            "ref": f"@{ref}",
+            "action": "click"
         })
         break
+
+# Fill a form field
+requests.post(f"{BASE_URL}/api/action", json={
+    "ref": "@e3",
+    "action": "fill",
+    "value": "user@example.com"
+})
+
+# Wait for navigation
+requests.post(f"{BASE_URL}/api/wait/url", json={
+    "pattern": "**/success"
+})
 
 # Take a screenshot
 response = requests.get(f"{BASE_URL}/api/screenshot")
@@ -53,46 +351,52 @@ with open("screenshot.png", "wb") as f:
     f.write(response.content)
 ```
 
-## Element Identification
-
-The API returns element information with:
-- **selector**: CSS selector for targeting the element
-- **bbox**: Bounding box coordinates (x, y, width, height)
-- **areaPercentage**: Element size relative to viewport
-- **attributes**: HTML attributes (id, class, href, etc.)
-
-Elements with area >= 3% are marked as sections in the Markdown output.
-
-## Cookie Management
-
-Cookies are automatically saved and persisted across sessions. You can:
-- View all cookies with `GET /api/cookies`
-- Set custom cookies with `POST /api/cookies`
-- Clear cookies with `DELETE /api/cookies`
+---
 
 ## Best Practices
 
-1. **Wait for Navigation**: After navigating, wait a moment for the page to load before extracting content.
+1. **Use Snapshot/Ref System**: More reliable than CSS selectors for dynamic pages.
 
-2. **Use Specific Selectors**: When multiple elements match, use the most specific selector (preferably ID).
+2. **Wait for State Changes**: Always wait after navigation or interaction.
+   ```bash
+   fbb click @e1
+   fbb wait load
+   ```
 
-3. **Check Visibility**: Only interact with elements where `isVisible: true`.
+3. **Save Authentication State**: Avoid re-logging in by saving state.
+   ```bash
+   fbb state save auth.json
+   ```
 
-4. **Handle Errors**: Always check the `success` field in responses and handle errors appropriately.
+4. **Use Interactive Mode**: Filter to interactive elements for cleaner output.
+   ```bash
+   fbb snapshot -i
+   ```
+
+5. **Check Element State**: Verify elements before interacting.
+   ```bash
+   fbb is visible "#modal" && fbb click "#close"
+   ```
+
+---
 
 ## Troubleshooting
 
-### Common Issues
+### Element Not Found
+- Run `fbb snapshot -i` to see available elements
+- Check if element is visible with `fbb is visible`
+- Wait for element with `fbb wait selector`
 
-1. **Element not found**: Ensure the selector is correct and the element is visible.
+### Stale Refs
+- Refs are invalidated after page changes
+- Run `fbb snapshot` again after navigation
 
-2. **Navigation timeout**: Some sites may take longer to load. Consider adding delays.
-
-3. **Cookie issues**: Clear cookies if experiencing session problems.
+### Authentication Issues
+- Save state after successful login
+- Load state before accessing protected pages
+- Check if cookies expired with `fbb cookies list`
 
 ### Debug Mode
-
-Set `DEBUG=true` in the environment to enable verbose logging:
 ```bash
-DEBUG=true npm start
+DEBUG=true docker-compose up
 ```

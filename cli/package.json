@@ -1,0 +1,28 @@
+{
+  "name": "fbb",
+  "version": "0.1.0",
+  "description": "CLI tool for fuba-browser automation",
+  "type": "module",
+  "bin": {
+    "fbb": "./bin/fbb.js"
+  },
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "commander": "^13.1.0",
+    "chalk": "^5.4.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "CC0-1.0",
+  "author": ""
+}
