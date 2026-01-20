@@ -2,7 +2,97 @@
 
 ## Quick Start with Docker
 
-### Option 1: Using Pre-built Image (Recommended)
+### Option 1: Using Launcher Script (Recommended)
+
+Download and install the launcher script:
+
+```bash
+# Download the script
+curl -fsSL https://raw.githubusercontent.com/fuba/fuba-browser/main/fuba-browser.sh -o fuba-browser.sh
+chmod +x fuba-browser.sh
+
+# Install to /usr/local/bin (optional, requires sudo)
+./fuba-browser.sh install
+
+# Start the browser
+fuba-browser start
+```
+
+#### Launcher Script Commands
+
+```bash
+fuba-browser start     # Start the container
+fuba-browser stop      # Stop the container
+fuba-browser restart   # Restart the container
+fuba-browser update    # Update to latest image and restart
+fuba-browser status    # Show container status
+fuba-browser logs      # Show container logs
+fuba-browser pull      # Pull latest image
+fuba-browser version   # Show version info
+```
+
+#### Command Options
+
+Options for `start`, `restart`, and `update`:
+
+```bash
+-n, --name <name>         # Container name (default: fuba-browser)
+-p, --api-port <port>     # API port (default: 39000)
+-w, --vnc-web-port <port> # Web VNC port (default: 39001)
+-v, --vnc-port <port>     # VNC port (not exposed by default)
+-t, --tag <tag>           # Image tag (default: latest)
+```
+
+#### Multiple Instances
+
+Run multiple browser instances with different names and ports:
+
+```bash
+# Start two instances
+fuba-browser start -n browser1 -p 39000 -w 39001
+fuba-browser start -n browser2 -p 39100 -w 39101
+
+# Stop specific instance
+fuba-browser stop browser1
+
+# Check status of specific instance
+fuba-browser status browser2
+```
+
+#### VNC Port Exposure
+
+By default, the raw VNC port (5900) is not exposed. To expose it:
+
+```bash
+# Expose VNC on port 5900
+fuba-browser start -v 5900
+
+# Multiple instances with VNC
+fuba-browser start -n browser1 -p 39000 -w 39001 -v 5900
+fuba-browser start -n browser2 -p 39100 -w 39101 -v 5901
+```
+
+#### Environment Variables
+
+```bash
+FBB_IMAGE         # Image name (default: ghcr.io/fuba/fuba-browser)
+FBB_TAG           # Image tag (default: latest)
+FBB_SHM_SIZE      # Shared memory size (default: 2g)
+FBB_AUTO_UPDATE   # Auto-update on start (default: true)
+FBB_VNC_PASSWORD  # VNC password (default: fuba-browser)
+```
+
+Example:
+
+```bash
+# Disable auto-update
+FBB_AUTO_UPDATE=false fuba-browser start
+
+# Use specific version via environment
+FBB_TAG=1.0.0 fuba-browser start
+```
+
+### Option 2: Using Docker Directly
 
 Pull and run the image from GitHub Container Registry:
 
@@ -20,7 +110,7 @@ docker run -d \
   ghcr.io/fuba/fuba-browser:1.0.0
 ```
 
-### Option 2: Building from Source
+### Option 3: Building from Source
 
 1. Clone and build:
 ```bash
