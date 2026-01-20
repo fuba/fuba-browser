@@ -2,8 +2,32 @@
 
 ## Quick Start with Docker
 
-1. Build and start the container:
+### Option 1: Using Pre-built Image (Recommended)
+
+Pull and run the image from GitHub Container Registry:
+
 ```bash
+# Pull the image
+docker pull ghcr.io/fuba/fuba-browser:1.0.0
+
+# Run the container
+docker run -d \
+  --name fuba-browser \
+  -p 39000:39000 \
+  -p 39001:6080 \
+  -p 5900:5900 \
+  --shm-size=2g \
+  ghcr.io/fuba/fuba-browser:1.0.0
+```
+
+### Option 2: Building from Source
+
+1. Clone and build:
+```bash
+git clone https://github.com/fuba/fuba-browser.git
+cd fuba-browser
+npm ci
+npm run build
 docker-compose up
 ```
 
