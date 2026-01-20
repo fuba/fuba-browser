@@ -23,7 +23,25 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 
 ## Installation
 
-### Using Pre-built Docker Image (Recommended)
+### Using Launcher Script (Recommended)
+
+Download and install the launcher script:
+
+```bash
+# Download the script
+curl -fsSL https://raw.githubusercontent.com/fuba/fuba-browser/main/fuba-browser.sh -o fuba-browser.sh
+chmod +x fuba-browser.sh
+
+# Install to /usr/local/bin (optional, requires sudo)
+./fuba-browser.sh install
+
+# Start the browser
+fuba-browser start
+```
+
+The launcher script automatically pulls the Docker image and manages the container.
+
+### Using Docker Directly
 
 Pull the image from GitHub Container Registry:
 
@@ -61,13 +79,34 @@ docker-compose up
 ### Start the Browser
 
 ```bash
-# Using docker-compose (from source)
+# Using launcher script
+fuba-browser start
+
+# Or using docker-compose (from source)
 docker-compose up
 
 # Access points:
 # - REST API: http://localhost:39000
 # - Web VNC: http://localhost:39001
 # - VNC: vnc://localhost:5900 (password: fuba-browser)
+```
+
+### Launcher Script Commands
+
+```bash
+fuba-browser start                    # Start the container
+fuba-browser stop                     # Stop the container
+fuba-browser restart                  # Restart the container
+fuba-browser update                   # Update to latest image and restart
+fuba-browser status                   # Show container status
+fuba-browser logs                     # Show container logs
+
+# Multiple instances
+fuba-browser start -n browser1 -p 39000 -w 39001
+fuba-browser start -n browser2 -p 39100 -w 39101
+
+# With VNC port exposed
+fuba-browser start -v 5900
 ```
 
 ### Install CLI
