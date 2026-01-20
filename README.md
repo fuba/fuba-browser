@@ -21,12 +21,47 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 - **Docker-based deployment** with X11 support
 - **Japanese font support** (Noto Sans CJK & Noto Serif CJK)
 
+## Installation
+
+### Using Pre-built Docker Image (Recommended)
+
+Pull the image from GitHub Container Registry:
+
+```bash
+docker pull ghcr.io/fuba/fuba-browser:1.0.0
+
+# Or use the latest version
+docker pull ghcr.io/fuba/fuba-browser:latest
+```
+
+Run the container:
+
+```bash
+docker run -d \
+  --name fuba-browser \
+  -p 39000:39000 \
+  -p 39001:6080 \
+  -p 5900:5900 \
+  --shm-size=2g \
+  ghcr.io/fuba/fuba-browser:1.0.0
+```
+
+### Building from Source
+
+```bash
+git clone https://github.com/fuba/fuba-browser.git
+cd fuba-browser
+npm ci
+npm run build
+docker-compose up
+```
+
 ## Quick Start
 
 ### Start the Browser
 
 ```bash
-# Build and start
+# Using docker-compose (from source)
 docker-compose up
 
 # Access points:
