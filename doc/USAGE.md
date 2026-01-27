@@ -123,7 +123,8 @@ docker-compose up
 
 Access points:
 - REST API: `http://localhost:39000`
-- Web VNC: `http://localhost:39001`
+- Web VNC (auto-login): `http://localhost:39000/web-vnc`
+- Web VNC (manual): `http://localhost:39001`
 - VNC: `vnc://localhost:5900` (password: fuba-browser)
 
 ## CLI Tool (`fbb`)
