@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest'
 import type { Request } from 'express'
 import { buildWebVncRedirectUrl } from '../server/index.js'
 
+const TEST_PASSWORD = 'test-password'
+
 function createRequest(overrides: Partial<Request> = {}): Request {
   const base = {
     headers: {},
@@ -19,8 +21,8 @@ describe('buildWebVncRedirectUrl', () => {
       },
     })
 
-    const result = buildWebVncRedirectUrl(req, 39001, 'secret')
-    expect(result).toBe('https://proxy.example.com:39001/vnc.html#password=secret&autoconnect=1')
+    const result = buildWebVncRedirectUrl(req, 39001, TEST_PASSWORD)
+    expect(result).toBe(`https://proxy.example.com:39001/vnc.html#password=${TEST_PASSWORD}&autoconnect=1`)
   })
 
   it('falls back to host header when forwarded headers are missing', () => {
@@ -30,7 +32,7 @@ describe('buildWebVncRedirectUrl', () => {
       },
     })
 
-    const result = buildWebVncRedirectUrl(req, 39001, 'fuba-browser')
-    expect(result).toBe('http://localhost:39001/vnc.html#password=fuba-browser&autoconnect=1')
+    const result = buildWebVncRedirectUrl(req, 39001, TEST_PASSWORD)
+    expect(result).toBe(`http://localhost:39001/vnc.html#password=${TEST_PASSWORD}&autoconnect=1`)
   })
 })
