@@ -51,7 +51,7 @@
     "chrome-remote-interface": "^0.33.3",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "electron": "^39.2.7",
+    "electron": "^39.3.0",
     "express": "^5.2.1",
     "puppeteer-core": "^24.35.0",
     "turndown": "^7.2.2"
