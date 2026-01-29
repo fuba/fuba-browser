@@ -70,10 +70,11 @@ export function browserRoutes(browserController: BrowserController): Router {
     }
   });
   
-  // Take screenshot
-  router.get('/screenshot', async (_req: Request, res: Response) => {
+  // Take screenshot (optional selector for element screenshot)
+  router.get('/screenshot', async (req: Request, res: Response) => {
     try {
-      const screenshot = await browserController.screenshot();
+      const selector = req.query.selector as string || req.query.s as string;
+      const screenshot = await browserController.screenshot(selector);
       res.set('Content-Type', 'image/png');
       res.send(screenshot);
     } catch (error) {

@@ -153,8 +153,9 @@ export class FubaClient {
   }
 
   // Screenshot
-  async screenshot(): Promise<ApiResponse<Buffer>> {
-    return this.get('/api/screenshot');
+  async screenshot(selector?: string): Promise<ApiResponse<Buffer>> {
+    const params = selector ? `?selector=${encodeURIComponent(selector)}` : '';
+    return this.get(`/api/screenshot${params}`);
   }
 
   // Get page content

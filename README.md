@@ -230,7 +230,7 @@ fbb health              # Check API server health
 ## Architecture
 
 - **Container**: Docker with X11/Xvfb
-- **Browser**: Electron + Chromium
+- **Browser**: Playwright + Chromium
 - **Backend**: Node.js + TypeScript
 - **API Server**: Express
 - **Browser Control**: Chrome DevTools Protocol

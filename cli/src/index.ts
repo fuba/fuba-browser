@@ -230,13 +230,13 @@ program
 program
   .command('screenshot [path]')
   .description('Take a screenshot')
-  .option('-f, --full', 'Full page screenshot')
-  .action(async (path?: string, _options?: { full: boolean }) => {
-    const result = await client.screenshot();
+  .option('-s, --selector <selector>', 'Capture specific element')
+  .action(async (path?: string, options?: { selector?: string }) => {
+    const result = await client.screenshot(options?.selector);
     if (result.success && result.data) {
       if (path) {
         writeFileSync(path, result.data as Buffer);
-        success(`Screenshot saved to ${path}`);
+        success(`Screenshot saved to ${path}${options?.selector ? ` (element: ${options.selector})` : ''}`);
       } else {
         raw(result.data as Buffer);
       }
