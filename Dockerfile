@@ -1,6 +1,6 @@
 FROM node:25-slim
 
-# Install dependencies for Electron & Chromium
+# Install dependencies for Playwright Chromium & VNC
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -8,41 +8,21 @@ RUN apt-get update && apt-get install -y \
     fonts-liberation \
     fonts-noto-cjk \
     fonts-noto-cjk-extra \
-    libappindicator3-1 \
     libasound2 \
     libatk-bridge2.0-0 \
     libatk1.0-0 \
-    libc6 \
-    libcairo2 \
     libcups2 \
     libdbus-1-3 \
-    libexpat1 \
-    libfontconfig1 \
+    libdrm2 \
     libgbm1 \
-    libgcc1 \
-    libgdk-pixbuf-2.0-0 \
-    libglib2.0-0 \
     libgtk-3-0 \
     libnspr4 \
     libnss3 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libstdc++6 \
-    libx11-6 \
-    libx11-xcb1 \
-    libxcb1 \
     libxcomposite1 \
-    libxcursor1 \
     libxdamage1 \
-    libxext6 \
     libxfixes3 \
-    libxi6 \
+    libxkbcommon0 \
     libxrandr2 \
-    libxrender1 \
-    libxss1 \
-    libxtst6 \
-    lsb-release \
-    xdg-utils \
     xvfb \
     x11vnc \
     novnc \
@@ -56,7 +36,6 @@ RUN useradd -ms /bin/bash app
 
 # Set up VNC and noVNC
 RUN mkdir -p /home/app/.vnc /home/app/.fluxbox
-# Create VNC password file (x11vnc can use -usepw without vncpasswd)
 RUN chown -R app:app /home/app
 
 # Create app directory
@@ -66,7 +45,16 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm ci --omit=dev
+
+# Set Playwright browser path to a shared location
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+
+# Install Playwright browsers (Chromium only) to shared path
+RUN mkdir -p /opt/playwright-browsers && \
+    npx playwright install chromium && \
+    npx playwright install-deps chromium && \
+    chmod -R 755 /opt/playwright-browsers
 
 # Copy built application
 COPY dist ./dist
@@ -76,6 +64,10 @@ COPY .env.example ./.env
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/start-vnc.sh /usr/local/bin/start-vnc.sh
 RUN chmod +x /usr/local/bin/start-vnc.sh
+
+# Copy fontconfig to prioritize Noto Sans CJK JP
+COPY docker/fonts.conf /etc/fonts/conf.d/99-noto-cjk-jp.conf
+RUN fc-cache -fv
 
 # Set permissions
 RUN chown -R app:app /app
@@ -91,7 +83,7 @@ ENV VNC_PASSWORD=fuba-browser
 
 # Environment variables
 ENV DISPLAY=:99 \
-    ELECTRON_DISABLE_SANDBOX=1 \
+    HEADLESS=false \
     NODE_ENV=production
 
 # Start supervisor

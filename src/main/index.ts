@@ -1,147 +1,92 @@
-import electron from 'electron';
-import type { BrowserWindow as BrowserWindowType } from 'electron';
-const { app, BrowserWindow, protocol, Menu, session } = electron;
+import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { startApiServer } from '../server/index.js';
 import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 
-// Use a standard Chrome User-Agent to avoid detection as Electron
+// Use a standard Chrome User-Agent to avoid detection as automation
 const CHROME_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
 
-let mainWindow: BrowserWindowType | null = null;
+let browser: Browser | null = null;
+let context: BrowserContext | null = null;
+let page: Page | null = null;
 let browserController: BrowserController | null = null;
 let snapshotGenerator: SnapshotGenerator | null = null;
 
-async function createWindow() {
-  // Set User-Agent before creating window
-  session.defaultSession.setUserAgent(CHROME_USER_AGENT);
+async function main() {
+  // Determine headless mode from environment variable
+  const headless = process.env.HEADLESS !== 'false';
 
-  mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 2000,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      webSecurity: true
-    },
-    title: 'Fuba Browser'
+  // Device scale factor for HiDPI (default: 2)
+  const deviceScaleFactor = Number(process.env.DEVICE_SCALE_FACTOR) || 2;
+
+  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x)...`);
+
+  // Launch browser
+  browser = await chromium.launch({
+    headless,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-blink-features=AutomationControlled',
+    ],
   });
 
-  // Override User-Agent for all requests
-  mainWindow.webContents.setUserAgent(CHROME_USER_AGENT);
+  // Create browser context with custom user agent, viewport and HiDPI
+  context = await browser.newContext({
+    userAgent: CHROME_USER_AGENT,
+    viewport: { width: 1200, height: 2000 },
+    deviceScaleFactor,
+    ignoreHTTPSErrors: true,
+  });
+
+  // Create the main page
+  page = await context.newPage();
+
+  // Navigate to blank page
+  await page.goto('about:blank');
 
   // Initialize browser controller and snapshot generator
-  browserController = new BrowserController(mainWindow);
-  snapshotGenerator = new SnapshotGenerator(mainWindow);
-
-  // Start with a blank page
-  await mainWindow.loadURL('about:blank');
-
-  // Setup context menu for right-click operations
-  setupContextMenu(mainWindow);
+  browserController = new BrowserController(page, context);
+  snapshotGenerator = new SnapshotGenerator(page);
 
   // Start API server
   const apiPort = process.env.API_PORT || 39000;
   await startApiServer(Number(apiPort), browserController, snapshotGenerator);
 
   console.log(`API server started on port ${apiPort}`);
+  console.log('Fuba Browser is ready.');
 
-  mainWindow.on('closed', () => {
-    mainWindow = null;
-    browserController = null;
-    snapshotGenerator = null;
-  });
+  // Handle graceful shutdown
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
-function setupContextMenu(window: BrowserWindowType) {
-  window.webContents.on('context-menu', (_event, params) => {
-    const menuTemplate: electron.MenuItemConstructorOptions[] = [];
+async function shutdown() {
+  console.log('Shutting down...');
 
-    // Add Back/Forward navigation
-    if (window.webContents.canGoBack()) {
-      menuTemplate.push({
-        label: 'Back',
-        click: () => {
-          window.webContents.goBack();
-        }
-      });
-    }
+  if (page) {
+    await page.close().catch(() => {});
+    page = null;
+  }
 
-    if (window.webContents.canGoForward()) {
-      menuTemplate.push({
-        label: 'Forward',
-        click: () => {
-          window.webContents.goForward();
-        }
-      });
-    }
+  if (context) {
+    await context.close().catch(() => {});
+    context = null;
+  }
 
-    // Add separator if navigation items exist
-    if (menuTemplate.length > 0) {
-      menuTemplate.push({ type: 'separator' });
-    }
+  if (browser) {
+    await browser.close().catch(() => {});
+    browser = null;
+  }
 
-    // Add Copy if text is selected
-    if (params.selectionText) {
-      menuTemplate.push({
-        label: 'Copy',
-        role: 'copy'
-      });
-    }
+  browserController = null;
+  snapshotGenerator = null;
 
-    // Add Paste for editable fields
-    if (params.isEditable) {
-      menuTemplate.push({
-        label: 'Paste',
-        role: 'paste'
-      });
-    }
-
-    // Add Cut for editable fields with selected text
-    if (params.isEditable && params.selectionText) {
-      menuTemplate.push({
-        label: 'Cut',
-        role: 'cut'
-      });
-    }
-
-    // Add separator and additional useful items
-    if (menuTemplate.length > 0) {
-      menuTemplate.push({ type: 'separator' });
-    }
-
-    // Add Reload
-    menuTemplate.push({
-      label: 'Reload',
-      click: () => {
-        window.webContents.reload();
-      }
-    });
-
-    // Show the context menu
-    const menu = Menu.buildFromTemplate(menuTemplate);
-    menu.popup();
-  });
+  process.exit(0);
 }
 
-app.whenReady().then(createWindow);
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
-
-app.on('activate', () => {
-  if (mainWindow === null) {
-    createWindow();
-  }
-});
-
-// Handle protocol for local file access if needed
-app.on('ready', () => {
-  protocol.registerFileProtocol('file', (request, callback) => {
-    const pathname = decodeURI(request.url.replace('file:///', ''));
-    callback(pathname);
-  });
+main().catch((error) => {
+  console.error('Failed to start Fuba Browser:', error);
+  process.exit(1);
 });

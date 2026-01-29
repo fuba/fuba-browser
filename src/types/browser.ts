@@ -97,12 +97,24 @@ export interface PdfExportResult {
   timestamp?: string;
 }
 
+// Cookie type compatible with Playwright
+export interface BrowserCookie {
+  name: string;
+  value: string;
+  domain: string;
+  path: string;
+  expires: number;
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'Strict' | 'Lax' | 'None';
+}
+
 // Browser state for saving/loading authentication
 export interface BrowserState {
   version: string;
   timestamp: string;
   url: string;
-  cookies: Electron.Cookie[];
+  cookies: BrowserCookie[];
   localStorage: Record<string, string>;
   sessionStorage: Record<string, string>;
 }

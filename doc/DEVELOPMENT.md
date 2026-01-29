@@ -5,8 +5,8 @@
 ```
 fuba-browser/
 ├── src/
-│   ├── main/           # Electron main process
-│   ├── browser/        # Browser control logic
+│   ├── main/           # Application entry point
+│   ├── browser/        # Browser control logic (Playwright)
 │   ├── server/         # REST API server
 │   ├── utils/          # Utility functions
 │   ├── types/          # TypeScript type definitions
@@ -17,13 +17,13 @@ fuba-browser/
 
 ## Key Components
 
-### 1. Electron Main Process (`src/main/index.ts`)
-- Creates the browser window
+### 1. Application Entry Point (`src/main/index.ts`)
+- Launches Playwright browser with Chromium
 - Initializes the browser controller
 - Starts the API server
 
 ### 2. Browser Controller (`src/browser/controller.ts`)
-- Manages Chrome DevTools Protocol connection
+- Manages Playwright browser instance
 - Implements browser automation methods
 - Handles page content extraction
 
@@ -126,8 +126,8 @@ Reference: https://chromedevtools.github.io/devtools-protocol/
 # Build TypeScript
 npm run build
 
-# Package Electron app
-npm run package
+# Build Docker image
+docker build -t fuba-browser .
 ```
 
 ## Docker Development

@@ -2,6 +2,10 @@ import { Router, Request, Response } from 'express';
 import { BrowserController } from '../../browser/controller.js';
 import { ApiResponse } from '../../types/browser.js';
 
+interface KeyParams {
+  key: string;
+}
+
 interface StorageSetRequest {
   key: string;
   value: string;
@@ -23,7 +27,7 @@ export function storageRoutes(browserController: BrowserController): Router {
   });
 
   // Get localStorage item by key
-  router.get('/storage/local/:key', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/storage/local/:key', async (req: Request<KeyParams>, res: Response<ApiResponse>) => {
     try {
       const key = decodeURIComponent(req.params.key);
       const value = await browserController.getLocalStorageItem(key);
@@ -49,7 +53,7 @@ export function storageRoutes(browserController: BrowserController): Router {
   });
 
   // Delete localStorage item
-  router.delete('/storage/local/:key', async (req: Request, res: Response<ApiResponse>) => {
+  router.delete('/storage/local/:key', async (req: Request<KeyParams>, res: Response<ApiResponse>) => {
     try {
       const key = decodeURIComponent(req.params.key);
       await browserController.removeLocalStorageItem(key);
@@ -82,7 +86,7 @@ export function storageRoutes(browserController: BrowserController): Router {
   });
 
   // Get sessionStorage item by key
-  router.get('/storage/session/:key', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/storage/session/:key', async (req: Request<KeyParams>, res: Response<ApiResponse>) => {
     try {
       const key = decodeURIComponent(req.params.key);
       const value = await browserController.getSessionStorageItem(key);
@@ -108,7 +112,7 @@ export function storageRoutes(browserController: BrowserController): Router {
   });
 
   // Delete sessionStorage item
-  router.delete('/storage/session/:key', async (req: Request, res: Response<ApiResponse>) => {
+  router.delete('/storage/session/:key', async (req: Request<KeyParams>, res: Response<ApiResponse>) => {
     try {
       const key = decodeURIComponent(req.params.key);
       await browserController.removeSessionStorageItem(key);

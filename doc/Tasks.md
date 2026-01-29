@@ -2,14 +2,14 @@
 
 ## Phase 1: Foundation (High Priority)
 - [x] Git初期化とGitHub privateリポジトリ作成
-- [ ] プロジェクト基本構造の設計・作成
+- [x] プロジェクト基本構造の設計・作成
   - TypeScriptプロジェクトのセットアップ
-  - Electron + Chromiumアプリケーション構造
-  - REST APIサーバー基盤（Express/Fastify）
-- [ ] Chromiumベースのデスクトップアプリケーション基盤構築
-  - Electronアプリケーションの初期設定
-  - メインプロセスとレンダラープロセスの構造設計
-  - DevTools Protocol統合
+  - Playwright + Chromiumアプリケーション構造
+  - REST APIサーバー基盤（Express）
+- [x] Chromiumベースのブラウザ自動化基盤構築
+  - Playwrightアプリケーションの初期設定
+  - ブラウザコントローラーの構造設計
+  - Playwright API統合
 
 ## Phase 2: Core Features (Medium Priority)
 - [ ] REST APIサーバーの実装
@@ -49,9 +49,9 @@
   - 再生機能の検討
 
 ## Technical Stack
-- **Frontend**: Electron + Chromium
+- **Browser**: Playwright + Chromium
 - **Backend**: Node.js + TypeScript
-- **API**: Express/Fastify
+- **API**: Express
 - **Browser Control**: Chrome DevTools Protocol
 - **VNC**: noVNC
 - **Container**: Docker (Linux)
