@@ -541,6 +541,30 @@ with open("screenshot.png", "wb") as f:
 
 ---
 
+## System Commands
+
+### Health Check
+```bash
+fbb health               # Check if API server is running
+```
+
+Returns server status and version information.
+
+### Reset Browser
+```bash
+fbb reset                # Restart Chromium process
+```
+
+Completely resets the browser state by restarting the Chromium process. Use this when:
+- Browser becomes unresponsive
+- Memory usage grows too high
+- Need a completely clean state
+- After long automation sessions
+
+**Note:** This is more thorough than clearing cookies/storage - it restarts the entire browser process.
+
+---
+
 ## Troubleshooting
 
 ### Element Not Found
@@ -556,6 +580,11 @@ with open("screenshot.png", "wb") as f:
 - Save state after successful login
 - Load state before accessing protected pages
 - Check if cookies expired with `fbb cookies list`
+
+### Browser Becomes Unresponsive
+```bash
+fbb reset                # Restart browser process
+```
 
 ### Debug Mode
 ```bash
