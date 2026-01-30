@@ -8,6 +8,13 @@ export class SnapshotGenerator {
     this.page = page;
   }
 
+  /**
+   * Update the page reference (used after browser reset).
+   */
+  setPage(page: Page): void {
+    this.page = page;
+  }
+
   async generate(options: SnapshotOptions = {}): Promise<Snapshot> {
     // Pass options as a serialized string to avoid TypeScript type checking issues
     // The code inside evaluate runs in the browser context

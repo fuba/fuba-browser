@@ -14,14 +14,18 @@ let browserController: BrowserController | null = null;
 let snapshotGenerator: SnapshotGenerator | null = null;
 let pageManager: PageManager | null = null;
 
-async function main() {
-  // Determine headless mode from environment variable
+// Browser configuration from environment
+function getBrowserConfig() {
   const headless = process.env.HEADLESS !== 'false';
-
-  // Device scale factor for HiDPI (default: 2)
   const deviceScaleFactor = Number(process.env.DEVICE_SCALE_FACTOR) || 2;
+  return { headless, deviceScaleFactor };
+}
 
-  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x)...`);
+// Initialize browser, context, page, and page manager
+async function initializeBrowser() {
+  const { headless, deviceScaleFactor } = getBrowserConfig();
+
+  console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x)...`);
 
   // Launch browser
   browser = await chromium.launch({
@@ -52,13 +56,57 @@ async function main() {
   // Navigate to blank page
   await page.goto('about:blank');
 
-  // Initialize browser controller and snapshot generator
-  browserController = new BrowserController(page, context);
-  snapshotGenerator = new SnapshotGenerator(page);
+  console.error('[System] Browser initialized');
 
-  // Start API server
+  return { browser, context, page, pageManager };
+}
+
+// Reset browser by closing and reinitializing
+async function resetBrowser(): Promise<void> {
+  console.error('[System] Resetting browser...');
+
+  // Close existing browser resources
+  if (page) {
+    await page.close().catch(() => {});
+  }
+  if (context) {
+    await context.close().catch(() => {});
+  }
+  if (browser) {
+    await browser.close().catch(() => {});
+  }
+
+  // Reinitialize browser
+  await initializeBrowser();
+
+  // Update controller and snapshot generator references
+  if (browserController && page && context) {
+    browserController.setPageAndContext(page, context);
+  }
+  if (snapshotGenerator && page) {
+    snapshotGenerator.setPage(page);
+  }
+
+  console.error('[System] Browser reset complete');
+}
+
+async function main() {
+  const { headless, deviceScaleFactor } = getBrowserConfig();
+
+  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x)...`);
+
+  // Initialize browser
+  await initializeBrowser();
+
+  // Initialize browser controller and snapshot generator
+  browserController = new BrowserController(page!, context!);
+  snapshotGenerator = new SnapshotGenerator(page!);
+
+  // Start API server with reset callback
   const apiPort = process.env.API_PORT || 39000;
-  await startApiServer(Number(apiPort), browserController, snapshotGenerator);
+  await startApiServer(Number(apiPort), browserController, snapshotGenerator, {
+    resetBrowser,
+  });
 
   console.log(`API server started on port ${apiPort}`);
   console.log('Fuba Browser is ready.');
