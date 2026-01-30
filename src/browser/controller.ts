@@ -1,220 +1,117 @@
-import { BrowserWindow } from 'electron';
-import CDP from 'chrome-remote-interface';
-import { ElementInfo, PageContent, PdfExportOptions, PdfExportResult, BrowserState } from '../types/browser.js';
+import { Page, BrowserContext, Cookie } from 'playwright';
+import { ElementInfo, PageContent, PdfExportOptions, PdfExportResult, BrowserState, BrowserCookie } from '../types/browser.js';
 import { convertToMarkdown } from '../utils/markdown.js';
 
 export class BrowserController {
-  private window: BrowserWindow;
-  private client: any | null = null;
-  
-  constructor(window: BrowserWindow) {
-    this.window = window;
+  private page: Page;
+  private context: BrowserContext;
+
+  constructor(page: Page, context: BrowserContext) {
+    this.page = page;
+    this.context = context;
   }
-  
-  async connect(): Promise<void> {
-    if (this.client) return;
-    
-    const port = await this.getDebuggerPort();
-    this.client = await CDP({ port });
-    
-    await this.client.Page.enable();
-    await this.client.DOM.enable();
-    await this.client.Runtime.enable();
+
+  /**
+   * Update the page and context references (used after browser reset).
+   */
+  setPageAndContext(page: Page, context: BrowserContext): void {
+    this.page = page;
+    this.context = context;
   }
-  
-  private async getDebuggerPort(): Promise<number> {
-    // Get the Chrome DevTools debugger URL
-    this.window.webContents.debugger.attach('1.3');
-    // Default Chrome debugging port
-    return 9222;
-  }
-  
+
   async navigate(url: string): Promise<void> {
-    await this.connect();
-    await this.window.loadURL(url);
+    await this.page.goto(url);
   }
-  
+
   async scroll(x: number, y: number): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      window.scrollTo(${x}, ${y});
-    `);
+    await this.page.evaluate(([scrollX, scrollY]) => {
+      window.scrollTo(scrollX, scrollY);
+    }, [x, y]);
   }
-  
+
   async click(selector: string): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
-      if (element) {
-        element.click();
-      } else {
-        throw new Error('Element not found: ${selector.replace(/'/g, "\\'")}');
-      }
-    `);
+    await this.page.click(selector);
   }
 
   async dblclick(selector: string): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
-      if (element) {
-        element.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }));
-      } else {
-        throw new Error('Element not found: ${selector.replace(/'/g, "\\'")}');
-      }
-    `);
+    await this.page.dblclick(selector);
   }
 
   async hover(selector: string): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
-      if (element) {
-        element.dispatchEvent(new MouseEvent('mouseenter', { bubbles: true }));
-        element.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
-      } else {
-        throw new Error('Element not found: ${selector.replace(/'/g, "\\'")}');
-      }
-    `);
+    await this.page.hover(selector);
   }
 
   async focus(selector: string): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
-      if (element) {
-        element.focus();
-      } else {
-        throw new Error('Element not found: ${selector.replace(/'/g, "\\'")}');
-      }
-    `);
+    await this.page.focus(selector);
   }
 
   async fill(selector: string, text: string): Promise<void> {
-    await this.connect();
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    const escapedText = text.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${escapedSelector}');
-      if (element) {
-        element.focus();
-        element.value = '';
-        element.value = '${escapedText}';
-        element.dispatchEvent(new Event('input', { bubbles: true }));
-        element.dispatchEvent(new Event('change', { bubbles: true }));
-      } else {
-        throw new Error('Element not found: ${escapedSelector}');
-      }
-    `);
+    await this.page.fill(selector, text);
   }
 
   async check(selector: string): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
-      if (element) {
-        if (!element.checked) {
-          element.click();
-        }
-      } else {
-        throw new Error('Element not found: ${selector.replace(/'/g, "\\'")}');
-      }
-    `);
+    await this.page.check(selector);
   }
 
   async uncheck(selector: string): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${selector.replace(/'/g, "\\'")}');
-      if (element) {
-        if (element.checked) {
-          element.click();
-        }
-      } else {
-        throw new Error('Element not found: ${selector.replace(/'/g, "\\'")}');
-      }
-    `);
+    await this.page.uncheck(selector);
   }
 
   async select(selector: string, value: string): Promise<void> {
-    await this.connect();
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    const escapedValue = value.replace(/'/g, "\\'");
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${escapedSelector}');
-      if (element) {
-        element.value = '${escapedValue}';
-        element.dispatchEvent(new Event('change', { bubbles: true }));
-      } else {
-        throw new Error('Element not found: ${escapedSelector}');
-      }
-    `);
+    await this.page.selectOption(selector, value);
   }
-  
+
   async type(selector: string, text: string): Promise<void> {
-    await this.connect();
-    await this.window.webContents.executeJavaScript(`
-      const element = document.querySelector('${selector}');
-      if (element) {
-        element.focus();
-        element.value = '${text.replace(/'/g, "\\'")}';
-        element.dispatchEvent(new Event('input', { bubbles: true }));
-      } else {
-        throw new Error('Element not found: ${selector}');
-      }
-    `);
+    await this.page.locator(selector).pressSequentially(text);
   }
-  
-  async screenshot(): Promise<Buffer> {
-    const image = await this.window.webContents.capturePage();
-    return image.toPNG();
+
+  async screenshot(selector?: string): Promise<Buffer> {
+    if (selector) {
+      const element = this.page.locator(selector).first();
+      return await element.screenshot({ type: 'png' });
+    }
+    return await this.page.screenshot({ type: 'png' });
   }
-  
+
   async getPageContent(): Promise<PageContent> {
-    await this.connect();
-    
-    const html = await this.window.webContents.executeJavaScript(`
-      document.documentElement.outerHTML
-    `);
-    
+    const html = await this.page.evaluate(() => document.documentElement.outerHTML);
+
     const elements = await this.getInteractiveElements();
     const markdown = await convertToMarkdown(html, elements);
-    
+
     return {
       html,
       markdown,
       elements,
-      url: this.window.webContents.getURL(),
-      title: await this.window.webContents.executeJavaScript('document.title')
+      url: this.page.url(),
+      title: await this.page.title()
     };
   }
-  
+
   async getInteractiveElements(): Promise<ElementInfo[]> {
-    await this.connect();
-    
-    const elements = await this.window.webContents.executeJavaScript(`
-      const elements = [];
+    const elements = await this.page.evaluate(() => {
+      const result: any[] = [];
       const viewport = {
         width: window.innerWidth,
         height: window.innerHeight
       };
-      
+
       // Get all potentially interactive elements
       const selectors = 'a, button, input, select, textarea, [onclick], [role="button"], [role="link"]';
       const nodes = document.querySelectorAll(selectors);
-      
+
       nodes.forEach(node => {
         const rect = node.getBoundingClientRect();
         const area = rect.width * rect.height;
         const viewportArea = viewport.width * viewport.height;
         const areaPercentage = (area / viewportArea) * 100;
-        
+
         // Filter elements with sufficient area (>= 0.1% of viewport)
         if (areaPercentage >= 0.1 && rect.width > 0 && rect.height > 0) {
-          elements.push({
+          result.push({
             tagName: node.tagName.toLowerCase(),
             selector: getUniqueSelector(node),
-            text: node.textContent.trim().substring(0, 100),
+            text: (node.textContent || '').trim().substring(0, 100),
             bbox: {
               x: rect.x,
               y: rect.y,
@@ -224,8 +121,8 @@ export class BrowserController {
             attributes: {
               id: node.id,
               class: node.className,
-              href: node.href,
-              type: node.type,
+              href: (node as HTMLAnchorElement).href,
+              type: (node as HTMLInputElement).type,
               role: node.getAttribute('role')
             },
             isVisible: rect.top < viewport.height && rect.bottom > 0,
@@ -233,46 +130,61 @@ export class BrowserController {
           });
         }
       });
-      
-      function getUniqueSelector(element) {
+
+      function getUniqueSelector(element: Element): string {
         if (element.id) return '#' + element.id;
-        
-        let path = [];
-        while (element && element.nodeType === Node.ELEMENT_NODE) {
-          let selector = element.nodeName.toLowerCase();
-          if (element.className) {
-            selector += '.' + element.className.split(' ').join('.');
+
+        const path: string[] = [];
+        let currentElement: Element | null = element;
+        while (currentElement && currentElement.nodeType === Node.ELEMENT_NODE) {
+          let selector = currentElement.nodeName.toLowerCase();
+          if (currentElement.className) {
+            selector += '.' + currentElement.className.split(' ').join('.');
           }
           path.unshift(selector);
-          element = element.parentNode;
+          currentElement = currentElement.parentElement;
         }
         return path.join(' > ');
       }
-      
-      return elements;
-    `);
-    
+
+      return result;
+    });
+
     return elements;
   }
-  
-  async getCookies(): Promise<any[]> {
-    const cookies = await this.window.webContents.session.cookies.get({});
-    return cookies;
+
+  async getCookies(): Promise<BrowserCookie[]> {
+    const cookies = await this.context.cookies();
+    return cookies.map(c => ({
+      name: c.name,
+      value: c.value,
+      domain: c.domain,
+      path: c.path,
+      expires: c.expires,
+      httpOnly: c.httpOnly,
+      secure: c.secure,
+      sameSite: c.sameSite as 'Strict' | 'Lax' | 'None',
+    }));
   }
-  
-  async setCookie(cookie: any): Promise<void> {
-    await this.window.webContents.session.cookies.set(cookie);
+
+  async setCookie(cookie: BrowserCookie): Promise<void> {
+    await this.context.addCookies([{
+      name: cookie.name,
+      value: cookie.value,
+      domain: cookie.domain,
+      path: cookie.path,
+      expires: cookie.expires,
+      httpOnly: cookie.httpOnly,
+      secure: cookie.secure,
+      sameSite: cookie.sameSite,
+    }]);
   }
-  
+
   async clearCookies(): Promise<void> {
-    await this.window.webContents.session.clearStorageData({
-      storages: ['cookies']
-    });
+    await this.context.clearCookies();
   }
 
   async exportPDF(options: PdfExportOptions = {}): Promise<{ data: Buffer; result: PdfExportResult }> {
-    await this.connect();
-
     const now = new Date();
     const timestampStr = this.formatTimestamp(now, options.timestamp?.format);
 
@@ -297,8 +209,8 @@ export class BrowserController {
       !!options.headerTemplate ||
       !!options.footerTemplate;
 
-    // Build printToPDF options
-    const pdfOptions: Electron.PrintToPDFOptions = {
+    // Build PDF options for Playwright
+    const pdfOptions: Parameters<Page['pdf']>[0] = {
       landscape: options.landscape ?? false,
       printBackground: options.printBackground ?? true,
       scale: options.scale ?? 1,
@@ -308,429 +220,252 @@ export class BrowserController {
       footerTemplate: footerTemplate || '<span></span>',
     };
 
-    // Paper size (convert from microns if provided, or use defaults)
+    // Paper size (convert from microns to mm string)
     if (options.paperWidth !== undefined) {
-      pdfOptions.pageSize = {
-        width: options.paperWidth,
-        height: options.paperHeight ?? 297000, // Default A4 height
-      };
+      pdfOptions.width = `${options.paperWidth / 1000}mm`;
+      pdfOptions.height = `${(options.paperHeight ?? 297000) / 1000}mm`;
     }
 
-    // Margins
+    // Margins (convert from microns to mm string)
     if (options.marginTop !== undefined || options.marginBottom !== undefined ||
         options.marginLeft !== undefined || options.marginRight !== undefined) {
-      pdfOptions.margins = {
-        top: options.marginTop ?? 0,
-        bottom: options.marginBottom ?? 0,
-        left: options.marginLeft ?? 0,
-        right: options.marginRight ?? 0,
+      pdfOptions.margin = {
+        top: `${(options.marginTop ?? 0) / 1000}mm`,
+        bottom: `${(options.marginBottom ?? 0) / 1000}mm`,
+        left: `${(options.marginLeft ?? 0) / 1000}mm`,
+        right: `${(options.marginRight ?? 0) / 1000}mm`,
       };
     }
 
-    const data = await this.window.webContents.printToPDF(pdfOptions);
+    const data = await this.page.pdf(pdfOptions);
 
     const result: PdfExportResult = {
       success: true,
       size: data.length,
-      url: this.window.webContents.getURL(),
-      title: await this.window.webContents.executeJavaScript('document.title'),
+      url: this.page.url(),
+      title: await this.page.title(),
       timestamp: options.timestamp?.enabled ? timestampStr : undefined,
     };
 
     return { data, result };
   }
 
-  // Wait methods
+  // Wait methods - using Playwright's built-in waiting
   async waitForSelector(selector: string, options: { timeout?: number; visible?: boolean } = {}): Promise<boolean> {
     const { timeout = 30000, visible = true } = options;
-    const startTime = Date.now();
-    const escapedSelector = selector.replace(/'/g, "\\'");
-
-    while (Date.now() - startTime < timeout) {
-      const found = await this.window.webContents.executeJavaScript(`
-        (function() {
-          const element = document.querySelector('${escapedSelector}');
-          if (!element) return false;
-          if (${visible}) {
-            const rect = element.getBoundingClientRect();
-            const style = window.getComputedStyle(element);
-            return rect.width > 0 && rect.height > 0 &&
-                   style.display !== 'none' &&
-                   style.visibility !== 'hidden';
-          }
-          return true;
-        })()
-      `);
-
-      if (found) return true;
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      await this.page.waitForSelector(selector, {
+        timeout,
+        state: visible ? 'visible' : 'attached'
+      });
+      return true;
+    } catch {
+      throw new Error(`Timeout waiting for selector: ${selector}`);
     }
-
-    throw new Error(`Timeout waiting for selector: ${selector}`);
   }
 
   async waitForText(text: string, options: { timeout?: number; selector?: string } = {}): Promise<boolean> {
     const { timeout = 30000, selector } = options;
-    const startTime = Date.now();
-    const escapedText = text.replace(/'/g, "\\'");
-    const escapedSelector = selector ? selector.replace(/'/g, "\\'") : '';
-
-    while (Date.now() - startTime < timeout) {
-      const found = await this.window.webContents.executeJavaScript(`
-        (function() {
-          const root = ${escapedSelector ? `document.querySelector('${escapedSelector}')` : 'document.body'};
-          if (!root) return false;
-          return root.textContent.includes('${escapedText}');
-        })()
-      `);
-
-      if (found) return true;
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      const locator = selector
+        ? this.page.locator(selector).getByText(text, { exact: false })
+        : this.page.getByText(text, { exact: false });
+      await locator.first().waitFor({ timeout });
+      return true;
+    } catch {
+      throw new Error(`Timeout waiting for text: ${text}`);
     }
-
-    throw new Error(`Timeout waiting for text: ${text}`);
   }
 
   async waitForUrl(pattern: string, options: { timeout?: number } = {}): Promise<string> {
     const { timeout = 30000 } = options;
-    const startTime = Date.now();
-
     // Convert glob pattern to regex
     const regex = new RegExp(pattern.replace(/\*\*/g, '.*').replace(/\*/g, '[^/]*'));
 
-    while (Date.now() - startTime < timeout) {
-      const currentUrl = this.window.webContents.getURL();
-      if (regex.test(currentUrl)) {
-        return currentUrl;
-      }
-      await new Promise(resolve => setTimeout(resolve, 100));
+    try {
+      await this.page.waitForURL(regex, { timeout });
+      return this.page.url();
+    } catch {
+      throw new Error(`Timeout waiting for URL matching: ${pattern}`);
     }
-
-    throw new Error(`Timeout waiting for URL matching: ${pattern}`);
   }
 
   async waitForLoad(state: 'load' | 'domcontentloaded' | 'networkidle', options: { timeout?: number } = {}): Promise<void> {
     const { timeout = 30000 } = options;
-
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        reject(new Error(`Timeout waiting for load state: ${state}`));
-      }, timeout);
-
-      if (state === 'networkidle') {
-        // Wait for network to be idle (no requests for 500ms)
-        let lastRequestTime = Date.now();
-        let checkInterval: NodeJS.Timeout;
-
-        const checkIdle = () => {
-          if (Date.now() - lastRequestTime > 500) {
-            clearTimeout(timeoutId);
-            clearInterval(checkInterval);
-            resolve();
-          }
-        };
-
-        this.window.webContents.session.webRequest.onCompleted(() => {
-          lastRequestTime = Date.now();
-        });
-
-        checkInterval = setInterval(checkIdle, 100);
-      } else {
-        if (state === 'load') {
-          this.window.webContents.once('did-finish-load', () => {
-            clearTimeout(timeoutId);
-            resolve();
-          });
-        } else {
-          this.window.webContents.once('dom-ready', () => {
-            clearTimeout(timeoutId);
-            resolve();
-          });
-        }
-      }
-    });
+    await this.page.waitForLoadState(state, { timeout });
   }
 
   // Getter methods for element information
   async getText(selector: string): Promise<string> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) throw new Error('Element not found: ${escapedSelector}');
-        return element.textContent.trim();
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    const text = await element.textContent();
+    return (text || '').trim();
   }
 
   async getHtml(selector: string): Promise<string> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) throw new Error('Element not found: ${escapedSelector}');
-        return element.innerHTML;
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    return await element.innerHTML();
   }
 
   async getValue(selector: string): Promise<string> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) throw new Error('Element not found: ${escapedSelector}');
-        return element.value || '';
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    return await element.inputValue();
   }
 
   async getAttribute(selector: string, attribute: string): Promise<string | null> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    const escapedAttr = attribute.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) throw new Error('Element not found: ${escapedSelector}');
-        return element.getAttribute('${escapedAttr}');
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    return await element.getAttribute(attribute);
   }
 
   async getCount(selector: string): Promise<number> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      document.querySelectorAll('${escapedSelector}').length
-    `);
+    return await this.page.locator(selector).count();
   }
 
   async getBoundingBox(selector: string): Promise<{ x: number; y: number; width: number; height: number }> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) throw new Error('Element not found: ${escapedSelector}');
-        const rect = element.getBoundingClientRect();
-        return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    const box = await element.boundingBox();
+    if (!box) {
+      throw new Error(`Element not found or not visible: ${selector}`);
+    }
+    return box;
   }
 
   async isVisible(selector: string): Promise<boolean> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) return false;
-        const rect = element.getBoundingClientRect();
-        const style = window.getComputedStyle(element);
-        return rect.width > 0 && rect.height > 0 &&
-               style.display !== 'none' &&
-               style.visibility !== 'hidden' &&
-               style.opacity !== '0';
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    return await element.isVisible();
   }
 
   async isEnabled(selector: string): Promise<boolean> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) return false;
-        return !element.disabled;
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    return await element.isEnabled();
   }
 
   async isChecked(selector: string): Promise<boolean> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) return false;
-        return !!element.checked;
-      })()
-    `);
+    const element = this.page.locator(selector).first();
+    return await element.isChecked();
   }
 
   // Keyboard methods
   async press(key: string): Promise<void> {
-    await this.window.webContents.sendInputEvent({
-      type: 'keyDown',
-      keyCode: key,
-    });
-    await this.window.webContents.sendInputEvent({
-      type: 'keyUp',
-      keyCode: key,
-    });
+    await this.page.keyboard.press(key);
   }
 
   async keyDown(key: string): Promise<void> {
-    await this.window.webContents.sendInputEvent({
-      type: 'keyDown',
-      keyCode: key,
-    });
+    await this.page.keyboard.down(key);
   }
 
   async keyUp(key: string): Promise<void> {
-    await this.window.webContents.sendInputEvent({
-      type: 'keyUp',
-      keyCode: key,
-    });
+    await this.page.keyboard.up(key);
   }
 
   // Mouse methods
   async mouseMove(x: number, y: number): Promise<void> {
-    await this.window.webContents.sendInputEvent({
-      type: 'mouseMove',
-      x,
-      y,
-    });
+    await this.page.mouse.move(x, y);
   }
 
   async mouseDown(button: 'left' | 'right' | 'middle' = 'left'): Promise<void> {
-    await this.window.webContents.sendInputEvent({
-      type: 'mouseDown',
-      button,
-      x: 0,
-      y: 0,
-    });
+    await this.page.mouse.down({ button });
   }
 
   async mouseUp(button: 'left' | 'right' | 'middle' = 'left'): Promise<void> {
-    await this.window.webContents.sendInputEvent({
-      type: 'mouseUp',
-      button,
-      x: 0,
-      y: 0,
-    });
+    await this.page.mouse.up({ button });
   }
 
   async mouseWheel(deltaY: number, deltaX: number = 0): Promise<void> {
-    await this.window.webContents.sendInputEvent({
-      type: 'mouseWheel',
-      x: 0,
-      y: 0,
-      deltaX,
-      deltaY,
+    await this.page.mouse.wheel(deltaX, deltaY);
+  }
+
+  // Storage methods - using page.evaluate
+  async getLocalStorage(): Promise<Record<string, string>> {
+    return await this.page.evaluate(() => {
+      const items: Record<string, string> = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          items[key] = localStorage.getItem(key) || '';
+        }
+      }
+      return items;
     });
   }
 
-  // Storage methods
-  async getLocalStorage(): Promise<Record<string, string>> {
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const items = {};
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          items[key] = localStorage.getItem(key);
-        }
-        return items;
-      })()
-    `);
-  }
-
   async getLocalStorageItem(key: string): Promise<string | null> {
-    const escapedKey = key.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      localStorage.getItem('${escapedKey}')
-    `);
+    return await this.page.evaluate((k) => localStorage.getItem(k), key);
   }
 
   async setLocalStorageItem(key: string, value: string): Promise<void> {
-    const escapedKey = key.replace(/'/g, "\\'");
-    const escapedValue = value.replace(/'/g, "\\'");
-    await this.window.webContents.executeJavaScript(`
-      localStorage.setItem('${escapedKey}', '${escapedValue}')
-    `);
+    await this.page.evaluate(([k, v]) => localStorage.setItem(k, v), [key, value]);
   }
 
   async removeLocalStorageItem(key: string): Promise<void> {
-    const escapedKey = key.replace(/'/g, "\\'");
-    await this.window.webContents.executeJavaScript(`
-      localStorage.removeItem('${escapedKey}')
-    `);
+    await this.page.evaluate((k) => localStorage.removeItem(k), key);
   }
 
   async clearLocalStorage(): Promise<void> {
-    await this.window.webContents.executeJavaScript('localStorage.clear()');
+    await this.page.evaluate(() => localStorage.clear());
   }
 
   async getSessionStorage(): Promise<Record<string, string>> {
-    return await this.window.webContents.executeJavaScript(`
-      (function() {
-        const items = {};
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const key = sessionStorage.key(i);
-          items[key] = sessionStorage.getItem(key);
+    return await this.page.evaluate(() => {
+      const items: Record<string, string> = {};
+      for (let i = 0; i < sessionStorage.length; i++) {
+        const key = sessionStorage.key(i);
+        if (key) {
+          items[key] = sessionStorage.getItem(key) || '';
         }
-        return items;
-      })()
-    `);
+      }
+      return items;
+    });
   }
 
   async getSessionStorageItem(key: string): Promise<string | null> {
-    const escapedKey = key.replace(/'/g, "\\'");
-    return await this.window.webContents.executeJavaScript(`
-      sessionStorage.getItem('${escapedKey}')
-    `);
+    return await this.page.evaluate((k) => sessionStorage.getItem(k), key);
   }
 
   async setSessionStorageItem(key: string, value: string): Promise<void> {
-    const escapedKey = key.replace(/'/g, "\\'");
-    const escapedValue = value.replace(/'/g, "\\'");
-    await this.window.webContents.executeJavaScript(`
-      sessionStorage.setItem('${escapedKey}', '${escapedValue}')
-    `);
+    await this.page.evaluate(([k, v]) => sessionStorage.setItem(k, v), [key, value]);
   }
 
   async removeSessionStorageItem(key: string): Promise<void> {
-    const escapedKey = key.replace(/'/g, "\\'");
-    await this.window.webContents.executeJavaScript(`
-      sessionStorage.removeItem('${escapedKey}')
-    `);
+    await this.page.evaluate((k) => sessionStorage.removeItem(k), key);
   }
 
   async clearSessionStorage(): Promise<void> {
-    await this.window.webContents.executeJavaScript('sessionStorage.clear()');
+    await this.page.evaluate(() => sessionStorage.clear());
   }
 
   // Debug methods
   async evaluate(script: string): Promise<unknown> {
-    return await this.window.webContents.executeJavaScript(script);
+    return await this.page.evaluate(script);
   }
 
   async highlight(selector: string): Promise<void> {
-    const escapedSelector = selector.replace(/'/g, "\\'");
-    await this.window.webContents.executeJavaScript(`
-      (function() {
-        // Remove any existing highlights
-        document.querySelectorAll('.fuba-highlight').forEach(el => el.remove());
+    await this.page.evaluate((sel) => {
+      // Remove any existing highlights
+      document.querySelectorAll('.fuba-highlight').forEach(el => el.remove());
 
-        const element = document.querySelector('${escapedSelector}');
-        if (!element) throw new Error('Element not found: ${escapedSelector}');
+      const element = document.querySelector(sel);
+      if (!element) throw new Error(`Element not found: ${sel}`);
 
-        const rect = element.getBoundingClientRect();
-        const highlight = document.createElement('div');
-        highlight.className = 'fuba-highlight';
-        highlight.style.cssText = \`
-          position: fixed;
-          top: \${rect.top}px;
-          left: \${rect.left}px;
-          width: \${rect.width}px;
-          height: \${rect.height}px;
-          border: 2px solid red;
-          background: rgba(255, 0, 0, 0.1);
-          pointer-events: none;
-          z-index: 999999;
-        \`;
-        document.body.appendChild(highlight);
+      const rect = element.getBoundingClientRect();
+      const highlight = document.createElement('div');
+      highlight.className = 'fuba-highlight';
+      highlight.style.cssText = `
+        position: fixed;
+        top: ${rect.top}px;
+        left: ${rect.left}px;
+        width: ${rect.width}px;
+        height: ${rect.height}px;
+        border: 2px solid red;
+        background: rgba(255, 0, 0, 0.1);
+        pointer-events: none;
+        z-index: 999999;
+      `;
+      document.body.appendChild(highlight);
 
-        // Remove after 3 seconds
-        setTimeout(() => highlight.remove(), 3000);
-      })()
-    `);
+      // Remove after 3 seconds
+      setTimeout(() => highlight.remove(), 3000);
+    }, selector);
   }
 
   private formatTimestamp(date: Date, format?: string): string {
@@ -768,10 +503,8 @@ export class BrowserController {
 
   // State management methods for saving/loading authentication
   async saveState(): Promise<BrowserState> {
-    await this.connect();
-
     // Get cookies
-    const cookies = await this.window.webContents.session.cookies.get({});
+    const cookies = await this.getCookies();
 
     // Get localStorage
     const localStorage = await this.getLocalStorage();
@@ -780,7 +513,7 @@ export class BrowserController {
     const sessionStorage = await this.getSessionStorage();
 
     // Get current URL
-    const url = this.window.webContents.getURL();
+    const url = this.page.url();
 
     const state: BrowserState = {
       version: '1.0',
@@ -795,8 +528,6 @@ export class BrowserController {
   }
 
   async loadState(state: BrowserState, options: { navigateToUrl?: boolean } = {}): Promise<void> {
-    await this.connect();
-
     // Clear existing state
     await this.clearCookies();
     await this.clearLocalStorage();
@@ -811,24 +542,21 @@ export class BrowserController {
           continue;
         }
 
-        // Build cookie object for setting
-        const cookieToSet: Electron.CookiesSetDetails = {
-          url: `${cookie.secure ? 'https' : 'http'}://${cookie.domain.replace(/^\./, '')}${cookie.path || '/'}`,
+        // Handle 'expires' field (also support legacy 'expirationDate' for backwards compatibility)
+        const expires = (cookie as any).expirationDate ?? cookie.expires;
+
+        const cookieToSet: Cookie = {
           name: cookie.name,
           value: cookie.value,
           domain: cookie.domain,
           path: cookie.path || '/',
-          secure: cookie.secure,
-          httpOnly: cookie.httpOnly,
-          sameSite: cookie.sameSite as 'unspecified' | 'no_restriction' | 'lax' | 'strict' | undefined,
+          expires: expires ?? -1,
+          httpOnly: cookie.httpOnly ?? false,
+          secure: cookie.secure ?? false,
+          sameSite: cookie.sameSite || 'Lax',
         };
 
-        // Set expiration if not session cookie
-        if (cookie.expirationDate) {
-          cookieToSet.expirationDate = cookie.expirationDate;
-        }
-
-        await this.window.webContents.session.cookies.set(cookieToSet);
+        await this.context.addCookies([cookieToSet]);
       } catch (e) {
         // Skip invalid cookies
         console.warn(`Failed to set cookie ${cookie.name}:`, (e as Error).message);
@@ -839,7 +567,7 @@ export class BrowserController {
     if (options.navigateToUrl && state.url && state.url !== 'about:blank') {
       await this.navigate(state.url);
       // Wait for page to load
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await this.page.waitForLoadState('domcontentloaded');
     }
 
     // Restore localStorage

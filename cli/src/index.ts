@@ -29,6 +29,7 @@ Common Commands:
   Information:  get title|url|text, is visible|enabled
   Wait:         wait selector|text|url|load
   State:        state save|load|info, cookies, storage
+  System:       health, reset
 
 Options:
   --host <host>   API host (default: localhost)
@@ -230,13 +231,13 @@ program
 program
   .command('screenshot [path]')
   .description('Take a screenshot')
-  .option('-f, --full', 'Full page screenshot')
-  .action(async (path?: string, _options?: { full: boolean }) => {
-    const result = await client.screenshot();
+  .option('-s, --selector <selector>', 'Capture specific element')
+  .action(async (path?: string, options?: { selector?: string }) => {
+    const result = await client.screenshot(options?.selector);
     if (result.success && result.data) {
       if (path) {
         writeFileSync(path, result.data as Buffer);
-        success(`Screenshot saved to ${path}`);
+        success(`Screenshot saved to ${path}${options?.selector ? ` (element: ${options.selector})` : ''}`);
       } else {
         raw(result.data as Buffer);
       }
@@ -336,6 +337,20 @@ program
       info(`Server is healthy (version ${(result.data as { version: string }).version})`);
     } else {
       error('Server is not responding', result.error);
+    }
+  });
+
+// reset
+program
+  .command('reset')
+  .description('Reset browser (restart Chromium process)')
+  .action(async () => {
+    info('Resetting browser...');
+    const result = await client.post('/api/reset', {});
+    if (result.success) {
+      success('Browser has been reset');
+    } else {
+      error('Failed to reset browser', result.error);
     }
   });
 

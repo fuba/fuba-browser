@@ -4,6 +4,7 @@ import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { setupRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/error.js';
+import { ResetBrowserFn } from './routes/system.js';
 
 const DEFAULT_VNC_WEB_PORT = 39001;
 
@@ -33,7 +34,16 @@ export function buildWebVncRedirectUrl(req: Request, vncWebPort: number, vncPass
   return targetUrl.toString();
 }
 
-export async function startApiServer(port: number, browserController: BrowserController, snapshotGenerator: SnapshotGenerator): Promise<Express> {
+export interface ServerOptions {
+  resetBrowser?: ResetBrowserFn;
+}
+
+export async function startApiServer(
+  port: number,
+  browserController: BrowserController,
+  snapshotGenerator: SnapshotGenerator,
+  options: ServerOptions = {}
+): Promise<Express> {
   const app = express();
   const vncWebPort = resolveVncWebPort(process.env.VNC_WEB_PORT);
 
@@ -57,7 +67,7 @@ export async function startApiServer(port: number, browserController: BrowserCon
   });
 
   // Setup routes
-  setupRoutes(app, browserController, snapshotGenerator);
+  setupRoutes(app, browserController, snapshotGenerator, options);
 
   // Error handler
   app.use(errorHandler);

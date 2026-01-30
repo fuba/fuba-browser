@@ -24,9 +24,9 @@ Thumbs.db
 .env.local
 .env.*.local
 
-# Electron
-electron-builder.yml
-release/
+# Playwright
+playwright-report/
+test-results/
 
 # Test coverage
 coverage/

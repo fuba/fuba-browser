@@ -16,4 +16,4 @@ x11vnc -display :99 -forever -passwd ${VNC_PASSWORD:-fuba-browser} -shared -rfbp
 /usr/bin/websockify --web /usr/share/novnc 6080 localhost:5900 &
 
 # Start the application
-DISPLAY=:99 /app/node_modules/.bin/electron /app/dist/main/index.js
+DISPLAY=:99 node /app/dist/main/index.js

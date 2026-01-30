@@ -2,11 +2,20 @@ import { Router, Request, Response } from 'express';
 import { BrowserController } from '../../browser/controller.js';
 import { ApiResponse } from '../../types/browser.js';
 
+interface SelectorParams {
+  selector: string;
+}
+
+interface AttrParams {
+  selector: string;
+  attribute: string;
+}
+
 export function getterRoutes(browserController: BrowserController): Router {
   const router = Router();
 
   // Get text content
-  router.get('/get/text/:selector', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/get/text/:selector', async (req: Request<SelectorParams>, res: Response<ApiResponse>) => {
     try {
       const selector = decodeURIComponent(req.params.selector);
       const text = await browserController.getText(selector);
@@ -17,7 +26,7 @@ export function getterRoutes(browserController: BrowserController): Router {
   });
 
   // Get innerHTML
-  router.get('/get/html/:selector', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/get/html/:selector', async (req: Request<SelectorParams>, res: Response<ApiResponse>) => {
     try {
       const selector = decodeURIComponent(req.params.selector);
       const html = await browserController.getHtml(selector);
@@ -28,7 +37,7 @@ export function getterRoutes(browserController: BrowserController): Router {
   });
 
   // Get input value
-  router.get('/get/value/:selector', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/get/value/:selector', async (req: Request<SelectorParams>, res: Response<ApiResponse>) => {
     try {
       const selector = decodeURIComponent(req.params.selector);
       const value = await browserController.getValue(selector);
@@ -39,7 +48,7 @@ export function getterRoutes(browserController: BrowserController): Router {
   });
 
   // Get attribute
-  router.get('/get/attr/:selector/:attribute', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/get/attr/:selector/:attribute', async (req: Request<AttrParams>, res: Response<ApiResponse>) => {
     try {
       const selector = decodeURIComponent(req.params.selector);
       const attribute = decodeURIComponent(req.params.attribute);
@@ -71,7 +80,7 @@ export function getterRoutes(browserController: BrowserController): Router {
   });
 
   // Get element count
-  router.get('/get/count/:selector', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/get/count/:selector', async (req: Request<SelectorParams>, res: Response<ApiResponse>) => {
     try {
       const selector = decodeURIComponent(req.params.selector);
       const count = await browserController.getCount(selector);
@@ -82,7 +91,7 @@ export function getterRoutes(browserController: BrowserController): Router {
   });
 
   // Get bounding box
-  router.get('/get/box/:selector', async (req: Request, res: Response<ApiResponse>) => {
+  router.get('/get/box/:selector', async (req: Request<SelectorParams>, res: Response<ApiResponse>) => {
     try {
       const selector = decodeURIComponent(req.params.selector);
       const box = await browserController.getBoundingBox(selector);

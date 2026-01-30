@@ -70,16 +70,39 @@ export function browserRoutes(browserController: BrowserController): Router {
     }
   });
   
-  // Take screenshot
-  router.get('/screenshot', async (_req: Request, res: Response) => {
+  // Take screenshot (optional selector for element screenshot) - returns PNG binary
+  router.get('/screenshot', async (req: Request, res: Response) => {
     try {
-      const screenshot = await browserController.screenshot();
+      const selector = req.query.selector as string || req.query.s as string;
+      const screenshot = await browserController.screenshot(selector);
       res.set('Content-Type', 'image/png');
       res.send(screenshot);
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   });
-  
+
+  // Take screenshot with options - can return base64
+  router.post('/screenshot', async (req: Request, res: Response) => {
+    try {
+      const { selector, type = 'binary' } = req.body as { selector?: string; type?: 'binary' | 'base64' };
+      const screenshot = await browserController.screenshot(selector);
+
+      if (type === 'base64') {
+        const base64 = screenshot.toString('base64');
+        res.json({
+          success: true,
+          screenshot: `data:image/png;base64,${base64}`
+        });
+        return;
+      }
+
+      res.set('Content-Type', 'image/png');
+      res.send(screenshot);
+    } catch (error) {
+      res.status(500).json({ success: false, error: (error as Error).message });
+    }
+  });
+
   return router;
 }

@@ -8,8 +8,8 @@ function createRequest(overrides: Partial<Request> = {}): Request {
   const base = {
     headers: {},
     protocol: 'http',
-  } as Request
-  return { ...base, ...overrides }
+  }
+  return { ...base, ...overrides } as Request
 }
 
 describe('buildWebVncRedirectUrl', () => {

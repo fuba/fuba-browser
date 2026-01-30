@@ -1,16 +1,24 @@
-import { BrowserWindow } from 'electron';
+import { Page } from 'playwright';
 import { SnapshotOptions, Snapshot, SnapshotNode } from '../types/snapshot.js';
 
 export class SnapshotGenerator {
-  private window: BrowserWindow;
+  private page: Page;
 
-  constructor(window: BrowserWindow) {
-    this.window = window;
+  constructor(page: Page) {
+    this.page = page;
+  }
+
+  /**
+   * Update the page reference (used after browser reset).
+   */
+  setPage(page: Page): void {
+    this.page = page;
   }
 
   async generate(options: SnapshotOptions = {}): Promise<Snapshot> {
-
-    const result = await this.window.webContents.executeJavaScript(`
+    // Pass options as a serialized string to avoid TypeScript type checking issues
+    // The code inside evaluate runs in the browser context
+    const result = await this.page.evaluate(`
       (function() {
         const options = ${JSON.stringify(options)};
         const refs = {};

@@ -17,10 +17,10 @@ updates:
         update-types:
           - "minor"
           - "patch"
-      electron:
+      playwright:
         patterns:
-          - "electron"
-          - "electron-builder"
+          - "playwright"
+          - "@playwright/*"
         update-types:
           - "minor"
           - "patch"

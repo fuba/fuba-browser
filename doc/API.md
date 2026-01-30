@@ -912,6 +912,44 @@ Get current state info without full data.
 }
 ```
 
+## System API
+
+System-level operations for browser management.
+
+### POST /api/reset
+Restart the browser process. This completely resets the browser state including all pages, cookies, storage, and memory.
+
+**Request Body:** (none required)
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Browser has been reset"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Reset failed"
+}
+```
+
+**Use Cases:**
+- Browser becomes unresponsive
+- Memory usage grows too high
+- Need a completely clean state
+- After long automation sessions
+
+**CLI Usage:**
+```bash
+fbb reset
+```
+
+---
+
 ## Error Responses
 
 All endpoints return error responses in the following format:
