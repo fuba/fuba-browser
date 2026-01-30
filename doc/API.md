@@ -18,6 +18,15 @@ Returns the health status of the API server.
 }
 ```
 
+## Web VNC
+
+### GET /web-vnc
+Redirect to the noVNC web client with auto-connect parameters. This is intended
+to be exposed through a reverse proxy that enforces authentication.
+
+**Response:**
+- 302 redirect to `/vnc.html#password=...&autoconnect=1` on the configured Web VNC port.
+
 ## Browser Control
 
 ### POST /api/navigate
