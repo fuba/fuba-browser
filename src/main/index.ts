@@ -2,6 +2,7 @@ import { chromium, Browser, BrowserContext, Page } from 'playwright';
 import { startApiServer } from '../server/index.js';
 import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
+import { PageManager } from '../browser/page-manager.js';
 
 // Use a standard Chrome User-Agent to avoid detection as automation
 const CHROME_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
@@ -11,6 +12,7 @@ let context: BrowserContext | null = null;
 let page: Page | null = null;
 let browserController: BrowserController | null = null;
 let snapshotGenerator: SnapshotGenerator | null = null;
+let pageManager: PageManager | null = null;
 
 async function main() {
   // Determine headless mode from environment variable
@@ -42,6 +44,10 @@ async function main() {
 
   // Create the main page
   page = await context.newPage();
+
+  // Initialize page manager to handle popups and target="_blank" links
+  pageManager = new PageManager(context, page);
+  await pageManager.setup();
 
   // Navigate to blank page
   await page.goto('about:blank');
@@ -82,6 +88,7 @@ async function shutdown() {
 
   browserController = null;
   snapshotGenerator = null;
+  pageManager = null;
 
   process.exit(0);
 }
