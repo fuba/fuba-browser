@@ -11,6 +11,14 @@ export class BrowserController {
     this.context = context;
   }
 
+  /**
+   * Update the page and context references (used after browser reset).
+   */
+  setPageAndContext(page: Page, context: BrowserContext): void {
+    this.page = page;
+    this.context = context;
+  }
+
   async navigate(url: string): Promise<void> {
     await this.page.goto(url);
   }

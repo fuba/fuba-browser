@@ -4,8 +4,18 @@ import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { setupRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/error.js';
+import { ResetBrowserFn } from './routes/system.js';
 
-export async function startApiServer(port: number, browserController: BrowserController, snapshotGenerator: SnapshotGenerator): Promise<Express> {
+export interface ServerOptions {
+  resetBrowser?: ResetBrowserFn;
+}
+
+export async function startApiServer(
+  port: number,
+  browserController: BrowserController,
+  snapshotGenerator: SnapshotGenerator,
+  options: ServerOptions = {}
+): Promise<Express> {
   const app = express();
 
   // Middleware
@@ -19,7 +29,7 @@ export async function startApiServer(port: number, browserController: BrowserCon
   });
 
   // Setup routes
-  setupRoutes(app, browserController, snapshotGenerator);
+  setupRoutes(app, browserController, snapshotGenerator, options);
 
   // Error handler
   app.use(errorHandler);

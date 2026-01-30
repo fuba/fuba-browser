@@ -12,8 +12,15 @@ import { inputRoutes } from './input.js';
 import { storageRoutes } from './storage.js';
 import { debugRoutes } from './debug.js';
 import { stateRoutes } from './state.js';
+import { systemRoutes } from './system.js';
+import { ServerOptions } from '../index.js';
 
-export function setupRoutes(app: Express, browserController: BrowserController, snapshotGenerator: SnapshotGenerator) {
+export function setupRoutes(
+  app: Express,
+  browserController: BrowserController,
+  snapshotGenerator: SnapshotGenerator,
+  options: ServerOptions = {}
+) {
   // Browser control routes
   app.use('/api', browserRoutes(browserController));
 
@@ -46,4 +53,9 @@ export function setupRoutes(app: Express, browserController: BrowserController, 
 
   // State routes (save/load authentication state)
   app.use('/api', stateRoutes(browserController));
+
+  // System routes (reset browser, etc.)
+  if (options.resetBrowser) {
+    app.use('/api', systemRoutes(options.resetBrowser));
+  }
 }
