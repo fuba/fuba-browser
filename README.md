@@ -250,6 +250,26 @@ The container is configured with generous resource limits to handle heavy websit
 
 These settings can be adjusted in `docker-compose.yml` based on your system resources.
 
+## Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `HEADLESS` | `true` | Set to `false` for headed mode |
+| `DEVICE_SCALE_FACTOR` | `2` | Device scale factor for HiDPI |
+| `LOCALE` | `ja-JP` | Browser locale (e.g., `en-US`, `ja-JP`, `ko-KR`) |
+| `TIMEZONE_ID` | `Asia/Tokyo` | Timezone ID (e.g., `America/New_York`, `Europe/London`) |
+| `API_PORT` | `39000` | API server port |
+
+Example usage in docker-compose.yml:
+
+```yaml
+services:
+  fuba-browser:
+    environment:
+      - LOCALE=en-US
+      - TIMEZONE_ID=America/New_York
+```
+
 ## Documentation
 
 - [CLI Reference](cli/README.md)
