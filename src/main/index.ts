@@ -18,14 +18,16 @@ let pageManager: PageManager | null = null;
 function getBrowserConfig() {
   const headless = process.env.HEADLESS !== 'false';
   const deviceScaleFactor = Number(process.env.DEVICE_SCALE_FACTOR) || 2;
-  return { headless, deviceScaleFactor };
+  const locale = process.env.LOCALE || 'ja-JP';
+  const timezoneId = process.env.TIMEZONE_ID || 'Asia/Tokyo';
+  return { headless, deviceScaleFactor, locale, timezoneId };
 }
 
 // Initialize browser, context, page, and page manager
 async function initializeBrowser() {
-  const { headless, deviceScaleFactor } = getBrowserConfig();
+  const { headless, deviceScaleFactor, locale, timezoneId } = getBrowserConfig();
 
-  console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x)...`);
+  console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId})...`);
 
   // Launch browser
   browser = await chromium.launch({
@@ -38,12 +40,14 @@ async function initializeBrowser() {
     ],
   });
 
-  // Create browser context with custom user agent, viewport and HiDPI
+  // Create browser context with custom user agent, viewport, HiDPI, locale and timezone
   context = await browser.newContext({
     userAgent: CHROME_USER_AGENT,
     viewport: { width: 1200, height: 2000 },
     deviceScaleFactor,
     ignoreHTTPSErrors: true,
+    locale,
+    timezoneId,
   });
 
   // Create the main page
@@ -91,9 +95,9 @@ async function resetBrowser(): Promise<void> {
 }
 
 async function main() {
-  const { headless, deviceScaleFactor } = getBrowserConfig();
+  const { headless, deviceScaleFactor, locale, timezoneId } = getBrowserConfig();
 
-  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x)...`);
+  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId})...`);
 
   // Initialize browser
   await initializeBrowser();
