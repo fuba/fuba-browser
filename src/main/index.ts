@@ -3,6 +3,7 @@ import { startApiServer } from '../server/index.js';
 import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { PageManager } from '../browser/page-manager.js';
+import { getBrowserConfig } from '../config/browser-config.js';
 
 // Use a standard Chrome User-Agent to avoid detection as automation
 const CHROME_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
@@ -13,15 +14,6 @@ let page: Page | null = null;
 let browserController: BrowserController | null = null;
 let snapshotGenerator: SnapshotGenerator | null = null;
 let pageManager: PageManager | null = null;
-
-// Browser configuration from environment
-function getBrowserConfig() {
-  const headless = process.env.HEADLESS !== 'false';
-  const deviceScaleFactor = Number(process.env.DEVICE_SCALE_FACTOR) || 2;
-  const locale = process.env.LOCALE || 'ja-JP';
-  const timezoneId = process.env.TIMEZONE_ID || 'Asia/Tokyo';
-  return { headless, deviceScaleFactor, locale, timezoneId };
-}
 
 // Initialize browser, context, page, and page manager
 async function initializeBrowser() {
