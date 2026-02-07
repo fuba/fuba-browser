@@ -13,6 +13,7 @@ import { storageRoutes } from './storage.js';
 import { debugRoutes } from './debug.js';
 import { stateRoutes } from './state.js';
 import { systemRoutes } from './system.js';
+import { webVncRoutes } from './web-vnc.js';
 import { ServerOptions } from '../index.js';
 
 export function setupRoutes(
@@ -57,5 +58,10 @@ export function setupRoutes(
   // System routes (reset browser, etc.)
   if (options.resetBrowser) {
     app.use('/api', systemRoutes(options.resetBrowser));
+  }
+
+  // Web VNC token routes
+  if (options.tokenStore) {
+    app.use('/api', webVncRoutes(options.tokenStore));
   }
 }

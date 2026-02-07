@@ -5,6 +5,7 @@ import { SnapshotGenerator } from '../browser/snapshot.js';
 import { setupRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/error.js';
 import { ResetBrowserFn } from './routes/system.js';
+import { TokenStore } from './token-store.js';
 
 const DEFAULT_VNC_WEB_PORT = 39001;
 
@@ -36,6 +37,7 @@ export function buildWebVncRedirectUrl(req: Request, vncWebPort: number, vncPass
 
 export interface ServerOptions {
   resetBrowser?: ResetBrowserFn;
+  tokenStore?: TokenStore;
 }
 
 export async function startApiServer(
@@ -57,17 +59,33 @@ export async function startApiServer(
     res.json({ status: 'ok', version: '0.1.0' });
   });
 
+  const tokenStore = options.tokenStore ?? new TokenStore(
+    process.env.VNC_TOKEN_TTL_SECONDS
+      ? Number.parseInt(process.env.VNC_TOKEN_TTL_SECONDS, 10)
+      : undefined
+  );
+
   app.get('/web-vnc', (req: Request, res: Response) => {
     const vncPassword = process.env.VNC_PASSWORD;
     if (!vncPassword) {
       return res.status(503).json({ success: false, error: 'VNC password is not configured' });
     }
+
+    const token = req.query.token as string | undefined;
+    if (!token) {
+      return res.status(401).json({ success: false, error: 'Token is required' });
+    }
+
+    if (!tokenStore.consumeToken(token)) {
+      return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+    }
+
     const redirectUrl = buildWebVncRedirectUrl(req, vncWebPort, vncPassword);
     return res.redirect(302, redirectUrl);
   });
 
   // Setup routes
-  setupRoutes(app, browserController, snapshotGenerator, options);
+  setupRoutes(app, browserController, snapshotGenerator, { ...options, tokenStore });
 
   // Error handler
   app.use(errorHandler);
