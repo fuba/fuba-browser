@@ -94,12 +94,54 @@ describe('getBrowserConfig', () => {
     });
   });
 
+  describe('viewport width', () => {
+    it('should default to 1200', () => {
+      delete process.env.VIEWPORT_WIDTH;
+      const config = getBrowserConfig();
+      expect(config.viewportWidth).toBe(1200);
+    });
+
+    it('should use VIEWPORT_WIDTH when set', () => {
+      process.env.VIEWPORT_WIDTH = '1920';
+      const config = getBrowserConfig();
+      expect(config.viewportWidth).toBe(1920);
+    });
+
+    it('should default to 1200 for invalid values', () => {
+      process.env.VIEWPORT_WIDTH = 'invalid';
+      const config = getBrowserConfig();
+      expect(config.viewportWidth).toBe(1200);
+    });
+  });
+
+  describe('viewport height', () => {
+    it('should default to 900', () => {
+      delete process.env.VIEWPORT_HEIGHT;
+      const config = getBrowserConfig();
+      expect(config.viewportHeight).toBe(900);
+    });
+
+    it('should use VIEWPORT_HEIGHT when set', () => {
+      process.env.VIEWPORT_HEIGHT = '1080';
+      const config = getBrowserConfig();
+      expect(config.viewportHeight).toBe(1080);
+    });
+
+    it('should default to 900 for invalid values', () => {
+      process.env.VIEWPORT_HEIGHT = 'invalid';
+      const config = getBrowserConfig();
+      expect(config.viewportHeight).toBe(900);
+    });
+  });
+
   describe('combined configuration', () => {
     it('should return all settings correctly when all env vars are set', () => {
       process.env.HEADLESS = 'false';
       process.env.DEVICE_SCALE_FACTOR = '1';
       process.env.LOCALE = 'fr-FR';
       process.env.TIMEZONE_ID = 'Europe/Paris';
+      process.env.VIEWPORT_WIDTH = '1920';
+      process.env.VIEWPORT_HEIGHT = '1080';
 
       const config = getBrowserConfig();
 
@@ -108,6 +150,8 @@ describe('getBrowserConfig', () => {
         deviceScaleFactor: 1,
         locale: 'fr-FR',
         timezoneId: 'Europe/Paris',
+        viewportWidth: 1920,
+        viewportHeight: 1080,
       });
     });
   });
