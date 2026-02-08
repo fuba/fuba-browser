@@ -20,12 +20,70 @@ Returns the health status of the API server.
 
 ## Web VNC
 
-### GET /web-vnc
-Redirect to the noVNC web client with auto-connect parameters. This is intended
-to be exposed through a reverse proxy that enforces authentication.
+### POST /api/web-vnc/token
+Issue a one-time token for noVNC access. The token expires after the configured TTL (default: 5 minutes, configurable via `VNC_TOKEN_TTL_SECONDS` environment variable).
+
+**Request Body:**
+```json
+{
+  "vncHost": "puma2:39101"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `vncHost` | string | No | The host:port for noVNC redirect. When specified, the redirect will use this host directly instead of auto-detecting from request headers. Useful when accessing from an external hostname. |
 
 **Response:**
-- 302 redirect to `/vnc.html#password=...&autoconnect=1` on the configured Web VNC port.
+```json
+{
+  "success": true,
+  "data": {
+    "token": "a1b2c3...hex64chars",
+    "expiresAt": "2026-02-08T02:35:28.463Z"
+  }
+}
+```
+
+**Error (503):** VNC password is not configured.
+
+**curl example:**
+```bash
+# Without vncHost (uses auto-detected host)
+curl -X POST http://localhost:39000/api/web-vnc/token
+
+# With vncHost (for external access)
+curl -X POST -H 'Content-Type: application/json' \
+  -d '{"vncHost":"puma2:39101"}' \
+  http://localhost:39000/api/web-vnc/token
+```
+
+### GET /web-vnc
+Consume a one-time token and redirect to the noVNC web client with auto-connect parameters.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `token` | string | Yes | One-time token from `POST /api/web-vnc/token` |
+
+**Response:**
+- **302 redirect** to `http://<host>:<port>/vnc.html#password=...&autoconnect=1`
+  - If the token was issued with `vncHost`, the redirect uses that host:port directly.
+  - Otherwise, the host is auto-detected from request headers and the port is set to the configured Web VNC port (`VNC_WEB_PORT`, default: 39001).
+- **401** if the token is missing, invalid, or already consumed.
+- **503** if `VNC_PASSWORD` is not configured.
+
+**Usage flow:**
+```bash
+# 1. Issue a token
+TOKEN=$(curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"vncHost":"puma2:39101"}' \
+  http://puma2:39100/api/web-vnc/token | jq -r '.data.token')
+
+# 2. Open in browser (one-time use)
+open "http://puma2:39100/web-vnc?token=${TOKEN}"
+```
 
 ## Browser Control
 

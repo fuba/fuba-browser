@@ -467,6 +467,43 @@ Returns server status and version information.
 
 ---
 
+## Web VNC Access
+
+Generate a one-time URL to access the browser via noVNC in your web browser.
+
+### Get noVNC URL
+```bash
+# Auto-detect host (for local access)
+fbb vnc
+
+# Specify external host (for remote access)
+fbb vnc --vnc-host puma2:39101
+```
+
+### API Usage
+```bash
+# Issue token with external host
+TOKEN=$(curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"vncHost":"puma2:39101"}' \
+  http://puma2:39100/api/web-vnc/token | jq -r '.data.token')
+
+# Open in browser
+open "http://puma2:39100/web-vnc?token=${TOKEN}"
+```
+
+### Multiple Instances
+When running multiple fuba-browser instances, specify the `vncHost` to ensure the noVNC redirect points to the correct instance:
+
+```bash
+# Instance 1: API on 39000, noVNC on 39001
+fbb --port 39000 vnc --vnc-host myhost:39001
+
+# Instance 2: API on 39100, noVNC on 39101
+fbb --port 39100 vnc --vnc-host myhost:39101
+```
+
+---
+
 ## Using with LLM Agents
 
 ### Example: Claude Code Integration
