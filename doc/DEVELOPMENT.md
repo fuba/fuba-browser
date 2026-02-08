@@ -137,7 +137,7 @@ docker build -t fuba-browser .
 docker build -t fuba-browser .
 
 # Run with mounted source for development
-docker run -v $(pwd):/app -p 3000:3000 -p 6080:6080 fuba-browser
+docker run -v $(pwd):/app -p 39000:39000 -p 6080:6080 fuba-browser
 ```
 
 ## Future Enhancements

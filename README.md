@@ -228,6 +228,13 @@ fbb screenshot [path]
 fbb health              # Check API server health
 ```
 
+### System
+```bash
+fbb reset               # Reset browser (close and reinitialize)
+fbb vnc                 # Generate a one-time noVNC access URL
+fbb vnc --vnc-host <host:port>  # Specify VNC host for redirect
+```
+
 ## Architecture
 
 - **Container**: Docker with X11/Xvfb
@@ -252,13 +259,32 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 
 ## Environment Variables
 
+### Browser
+
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `HEADLESS` | `true` | Set to `false` for headed mode |
+| `HEADLESS` | `true` | Set to `false` for headed mode (Docker default is `false`) |
 | `DEVICE_SCALE_FACTOR` | `2` | Device scale factor for HiDPI |
 | `LOCALE` | `ja-JP` | Browser locale (e.g., `en-US`, `ja-JP`, `ko-KR`) |
 | `TIMEZONE_ID` | `Asia/Tokyo` | Timezone ID (e.g., `America/New_York`, `Europe/London`) |
+| `VIEWPORT_WIDTH` | `1200` | Playwright viewport width |
+| `VIEWPORT_HEIGHT` | `2000` | Playwright viewport height |
+
+### Display
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DISPLAY_WIDTH` | `1200` | Xvfb virtual display width |
+| `DISPLAY_HEIGHT` | `2000` | Xvfb virtual display height |
+
+### Server
+
+| Variable | Default | Description |
+|----------|---------|-------------|
 | `API_PORT` | `39000` | API server port |
+| `VNC_PASSWORD` | `fuba-browser` | VNC connection password |
+| `VNC_WEB_PORT` | `39001` | Web VNC (noVNC websockify) port |
+| `VNC_TOKEN_TTL_SECONDS` | `300` | One-time VNC token TTL in seconds |
 
 Example usage in docker-compose.yml:
 
@@ -268,6 +294,10 @@ services:
     environment:
       - LOCALE=en-US
       - TIMEZONE_ID=America/New_York
+      - DISPLAY_WIDTH=1920
+      - DISPLAY_HEIGHT=1080
+      - VIEWPORT_WIDTH=1920
+      - VIEWPORT_HEIGHT=1080
 ```
 
 ## Documentation
