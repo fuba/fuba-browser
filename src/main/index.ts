@@ -17,9 +17,9 @@ let pageManager: PageManager | null = null;
 
 // Initialize browser, context, page, and page manager
 async function initializeBrowser() {
-  const { headless, deviceScaleFactor, locale, timezoneId } = getBrowserConfig();
+  const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight } = getBrowserConfig();
 
-  console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId})...`);
+  console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId}, viewport: ${viewportWidth}x${viewportHeight})...`);
 
   // Launch browser
   browser = await chromium.launch({
@@ -35,7 +35,7 @@ async function initializeBrowser() {
   // Create browser context with custom user agent, viewport, HiDPI, locale and timezone
   context = await browser.newContext({
     userAgent: CHROME_USER_AGENT,
-    viewport: { width: 1200, height: 2000 },
+    viewport: { width: viewportWidth, height: viewportHeight },
     deviceScaleFactor,
     ignoreHTTPSErrors: true,
     locale,
@@ -87,9 +87,9 @@ async function resetBrowser(): Promise<void> {
 }
 
 async function main() {
-  const { headless, deviceScaleFactor, locale, timezoneId } = getBrowserConfig();
+  const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight } = getBrowserConfig();
 
-  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId})...`);
+  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId}, viewport: ${viewportWidth}x${viewportHeight})...`);
 
   // Initialize browser
   await initializeBrowser();

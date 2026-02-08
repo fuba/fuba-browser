@@ -81,6 +81,12 @@ EXPOSE 39000 5900 6080
 # Set VNC password default
 ENV VNC_PASSWORD=fuba-browser
 
+# Display and viewport configuration
+ENV DISPLAY_WIDTH=1200 \
+    DISPLAY_HEIGHT=2000 \
+    VIEWPORT_WIDTH=1200 \
+    VIEWPORT_HEIGHT=2000
+
 # Environment variables
 ENV DISPLAY=:99 \
     HEADLESS=false \
