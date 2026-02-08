@@ -189,6 +189,16 @@ fbb screenshot output.png
 |---------|-------------|
 | `health` | Check API server health |
 
+### System
+
+| Command | Description |
+|---------|-------------|
+| `reset` | Reset browser (close and reinitialize) |
+| `vnc` | Generate a one-time noVNC access URL |
+
+**VNC options:**
+- `--vnc-host <host:port>` - VNC host:port for redirect (e.g., `puma2:39101`)
+
 ## Snapshot/Ref System
 
 The snapshot command returns an accessibility tree with element refs. Each interactive element gets a unique ref (e.g., `@e1`, `@e2`) that can be used for targeting.
