@@ -15,6 +15,6 @@ export function getBrowserConfig(): BrowserConfig {
   const locale = process.env.LOCALE || 'ja-JP';
   const timezoneId = process.env.TIMEZONE_ID || 'Asia/Tokyo';
   const viewportWidth = Number(process.env.VIEWPORT_WIDTH) || 1200;
-  const viewportHeight = Number(process.env.VIEWPORT_HEIGHT) || 900;
+  const viewportHeight = Number(process.env.VIEWPORT_HEIGHT) || 2000;
   return { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight };
 }

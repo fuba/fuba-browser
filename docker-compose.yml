@@ -9,10 +9,10 @@ services:
       - API_PORT=39000
       - DISPLAY=:99
       - VNC_PASSWORD=fuba-browser
-      - DISPLAY_WIDTH=1920
-      - DISPLAY_HEIGHT=1080
+      - DISPLAY_WIDTH=1200
+      - DISPLAY_HEIGHT=2000
       - VIEWPORT_WIDTH=1200
-      - VIEWPORT_HEIGHT=900
+      - VIEWPORT_HEIGHT=2000
     volumes:
       - ./logs:/app/logs
     shm_size: '2gb'

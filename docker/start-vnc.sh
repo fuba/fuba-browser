@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Start Xvfb
-Xvfb :99 -screen 0 ${DISPLAY_WIDTH:-1920}x${DISPLAY_HEIGHT:-1080}x24 -ac +extension GLX +render -noreset &
+Xvfb :99 -screen 0 ${DISPLAY_WIDTH:-1200}x${DISPLAY_HEIGHT:-2000}x24 -ac +extension GLX +render -noreset &
 
 # Wait for Xvfb to start
 sleep 2

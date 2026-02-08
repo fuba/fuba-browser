@@ -115,10 +115,10 @@ describe('getBrowserConfig', () => {
   });
 
   describe('viewport height', () => {
-    it('should default to 900', () => {
+    it('should default to 2000', () => {
       delete process.env.VIEWPORT_HEIGHT;
       const config = getBrowserConfig();
-      expect(config.viewportHeight).toBe(900);
+      expect(config.viewportHeight).toBe(2000);
     });
 
     it('should use VIEWPORT_HEIGHT when set', () => {
@@ -127,10 +127,10 @@ describe('getBrowserConfig', () => {
       expect(config.viewportHeight).toBe(1080);
     });
 
-    it('should default to 900 for invalid values', () => {
+    it('should default to 2000 for invalid values', () => {
       process.env.VIEWPORT_HEIGHT = 'invalid';
       const config = getBrowserConfig();
-      expect(config.viewportHeight).toBe(900);
+      expect(config.viewportHeight).toBe(2000);
     });
   });
 
