@@ -217,6 +217,16 @@ export class FubaClient {
     return this.post('/api/uncheck', { selector });
   }
 
+  // Web VNC token
+  async vncToken(vncHost?: string): Promise<ApiResponse<{ token: string; expiresAt: string }>> {
+    return this.post('/api/web-vnc/token', vncHost ? { vncHost } : {});
+  }
+
+  /** Return the base URL used by this client (for building noVNC URLs). */
+  getBaseUrl(): string {
+    return this.baseUrl;
+  }
+
   // Select
   async select(selector: string, value: string): Promise<ApiResponse<unknown>> {
     if (selector.startsWith('@') || /^e\d+$/.test(selector)) {

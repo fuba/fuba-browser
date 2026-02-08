@@ -29,6 +29,7 @@ Common Commands:
   Information:  get title|url|text, is visible|enabled
   Wait:         wait selector|text|url|load
   State:        state save|load|info, cookies, storage
+  VNC:          vnc [--vnc-host host:port]
   System:       health, reset
 
 Options:
@@ -351,6 +352,22 @@ program
       success('Browser has been reset');
     } else {
       error('Failed to reset browser', result.error);
+    }
+  });
+
+// vnc (generate noVNC access URL)
+program
+  .command('vnc')
+  .description('Generate a one-time noVNC access URL')
+  .option('--vnc-host <host:port>', 'VNC host:port for redirect (e.g. puma2:39101)')
+  .action(async (options) => {
+    const result = await client.vncToken(options.vncHost);
+    if (result.success && result.data) {
+      const url = `${client.getBaseUrl()}/web-vnc?token=${result.data.token}`;
+      output(url);
+      info(`Expires at: ${result.data.expiresAt}`);
+    } else {
+      error('Failed to generate VNC URL', result.error);
     }
   });
 
