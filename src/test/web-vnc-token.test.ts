@@ -25,10 +25,11 @@ describe('Web VNC Token Integration', () => {
       if (!token) {
         return res.status(401).json({ success: false, error: 'Token is required' });
       }
-      if (!tokenStore.consumeToken(token)) {
+      const metadata = tokenStore.consumeToken(token);
+      if (!metadata) {
         return res.status(401).json({ success: false, error: 'Invalid or expired token' });
       }
-      const redirectUrl = buildWebVncRedirectUrl(req, 39001, vncPassword);
+      const redirectUrl = buildWebVncRedirectUrl(req, 39001, vncPassword, metadata.vncHost);
       return res.redirect(302, redirectUrl);
     });
   });
@@ -163,6 +164,47 @@ describe('Web VNC Token Integration', () => {
       const retryRes = await request(app)
         .get(`/web-vnc?token=${token}`);
       expect(retryRes.status).toBe(401);
+    });
+
+    it('full flow: issue token with vncHost and redirect to specified host', async () => {
+      vi.stubEnv('VNC_PASSWORD', 'secret');
+
+      // Issue token with vncHost
+      const issueRes = await request(app)
+        .post('/api/web-vnc/token')
+        .send({ vncHost: 'puma2:39101' });
+      expect(issueRes.status).toBe(200);
+
+      const token = issueRes.body.data.token;
+
+      // Use token - should redirect to puma2:39101
+      const vncRes = await request(app)
+        .get(`/web-vnc?token=${token}`)
+        .redirects(0);
+      expect(vncRes.status).toBe(302);
+      expect(vncRes.headers.location).toContain('puma2:39101');
+      expect(vncRes.headers.location).toContain('vnc.html');
+      expect(vncRes.headers.location).toContain('password=secret');
+    });
+
+    it('full flow: issue token without vncHost uses default host detection', async () => {
+      vi.stubEnv('VNC_PASSWORD', 'secret');
+
+      // Issue token without vncHost
+      const issueRes = await request(app)
+        .post('/api/web-vnc/token')
+        .send();
+      expect(issueRes.status).toBe(200);
+
+      const token = issueRes.body.data.token;
+
+      // Use token - should use default host detection (port 39001)
+      const vncRes = await request(app)
+        .get(`/web-vnc?token=${token}`)
+        .redirects(0);
+      expect(vncRes.status).toBe(302);
+      expect(vncRes.headers.location).toContain(':39001');
+      expect(vncRes.headers.location).toContain('vnc.html');
     });
   });
 });

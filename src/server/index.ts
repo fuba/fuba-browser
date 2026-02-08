@@ -21,13 +21,21 @@ function resolveVncWebPort(value: string | undefined): number {
   return Number.isFinite(port) && port > 0 ? port : DEFAULT_VNC_WEB_PORT;
 }
 
-export function buildWebVncRedirectUrl(req: Request, vncWebPort: number, vncPassword: string): string {
-  const forwardedHost = normalizeHeader(req.headers['x-forwarded-host']);
-  const forwardedProto = normalizeHeader(req.headers['x-forwarded-proto']);
-  const hostHeader = forwardedHost || normalizeHeader(req.headers.host) || `localhost:${vncWebPort}`;
-  const protocol = forwardedProto || req.protocol || 'http';
-  const baseUrl = new URL(`${protocol}://${hostHeader}`);
-  baseUrl.port = String(vncWebPort);
+export function buildWebVncRedirectUrl(req: Request, vncWebPort: number, vncPassword: string, vncHost?: string): string {
+  let baseUrl: URL;
+  if (vncHost) {
+    // When vncHost is specified, use it directly without port override
+    const forwardedProto = normalizeHeader(req.headers['x-forwarded-proto']);
+    const protocol = forwardedProto || req.protocol || 'http';
+    baseUrl = new URL(`${protocol}://${vncHost}`);
+  } else {
+    const forwardedHost = normalizeHeader(req.headers['x-forwarded-host']);
+    const forwardedProto = normalizeHeader(req.headers['x-forwarded-proto']);
+    const hostHeader = forwardedHost || normalizeHeader(req.headers.host) || `localhost:${vncWebPort}`;
+    const protocol = forwardedProto || req.protocol || 'http';
+    baseUrl = new URL(`${protocol}://${hostHeader}`);
+    baseUrl.port = String(vncWebPort);
+  }
 
   const targetUrl = new URL('/vnc.html', baseUrl);
   const params = new URLSearchParams({ password: vncPassword, autoconnect: '1' });
@@ -76,11 +84,12 @@ export async function startApiServer(
       return res.status(401).json({ success: false, error: 'Token is required' });
     }
 
-    if (!tokenStore.consumeToken(token)) {
+    const metadata = tokenStore.consumeToken(token);
+    if (!metadata) {
       return res.status(401).json({ success: false, error: 'Invalid or expired token' });
     }
 
-    const redirectUrl = buildWebVncRedirectUrl(req, vncWebPort, vncPassword);
+    const redirectUrl = buildWebVncRedirectUrl(req, vncWebPort, vncPassword, metadata.vncHost);
     return res.redirect(302, redirectUrl);
   });
 

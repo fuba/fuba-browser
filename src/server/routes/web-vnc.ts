@@ -5,7 +5,7 @@ export function webVncRoutes(tokenStore: TokenStore): Router {
   const router = Router();
 
   // POST /api/web-vnc/token - Issue a one-time token for noVNC access
-  router.post('/web-vnc/token', (_req: Request, res: Response) => {
+  router.post('/web-vnc/token', (req: Request, res: Response) => {
     const vncPassword = process.env.VNC_PASSWORD;
     if (!vncPassword) {
       return res.status(503).json({
@@ -14,7 +14,8 @@ export function webVncRoutes(tokenStore: TokenStore): Router {
       });
     }
 
-    const { token, expiresAt } = tokenStore.createToken();
+    const vncHost = req.body?.vncHost as string | undefined;
+    const { token, expiresAt } = tokenStore.createToken(vncHost ? { vncHost } : undefined);
     return res.json({
       success: true,
       data: { token, expiresAt: expiresAt.toISOString() },

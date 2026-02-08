@@ -19,24 +19,26 @@ describe('TokenStore', () => {
     expect(expiresAt.getTime()).toBe(Date.now() + 60 * 1000);
   });
 
-  it('consumes a valid token and returns true', () => {
+  it('consumes a valid token and returns metadata', () => {
     const store = new TokenStore(60);
     const { token } = store.createToken();
 
-    expect(store.consumeToken(token)).toBe(true);
+    const result = store.consumeToken(token);
+    expect(result).not.toBeNull();
+    expect(result).toEqual({});
   });
 
   it('rejects a token that has already been consumed', () => {
     const store = new TokenStore(60);
     const { token } = store.createToken();
 
-    expect(store.consumeToken(token)).toBe(true);
-    expect(store.consumeToken(token)).toBe(false);
+    expect(store.consumeToken(token)).not.toBeNull();
+    expect(store.consumeToken(token)).toBeNull();
   });
 
   it('rejects an unknown token', () => {
     const store = new TokenStore(60);
-    expect(store.consumeToken('nonexistent')).toBe(false);
+    expect(store.consumeToken('nonexistent')).toBeNull();
   });
 
   it('rejects an expired token', () => {
@@ -46,7 +48,7 @@ describe('TokenStore', () => {
     // Advance time past TTL
     vi.advanceTimersByTime(11 * 1000);
 
-    expect(store.consumeToken(token)).toBe(false);
+    expect(store.consumeToken(token)).toBeNull();
   });
 
   it('purges expired tokens on createToken', () => {
@@ -69,7 +71,7 @@ describe('TokenStore', () => {
 
     // Still valid at 299 seconds
     vi.advanceTimersByTime(299 * 1000);
-    expect(store.consumeToken(token)).toBe(true);
+    expect(store.consumeToken(token)).not.toBeNull();
   });
 
   it('expired token at default TTL boundary', () => {
@@ -78,6 +80,22 @@ describe('TokenStore', () => {
 
     // Expired at 301 seconds
     vi.advanceTimersByTime(301 * 1000);
-    expect(store.consumeToken(token)).toBe(false);
+    expect(store.consumeToken(token)).toBeNull();
+  });
+
+  it('stores and returns metadata with vncHost', () => {
+    const store = new TokenStore(60);
+    const { token } = store.createToken({ vncHost: 'puma2:39101' });
+
+    const result = store.consumeToken(token);
+    expect(result).toEqual({ vncHost: 'puma2:39101' });
+  });
+
+  it('returns empty metadata when created without metadata', () => {
+    const store = new TokenStore(60);
+    const { token } = store.createToken();
+
+    const result = store.consumeToken(token);
+    expect(result).toEqual({});
   });
 });
