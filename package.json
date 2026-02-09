@@ -1,6 +1,6 @@
 {
   "name": "fuba-browser",
-  "version": "1.0.0",
+  "version": "1.7.2",
   "description": "Browser automation tool with REST API for LLM agents",
   "main": "dist/main/index.js",
   "type": "module",
