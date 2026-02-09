@@ -82,6 +82,18 @@ FBB_AUTO_UPDATE   # Auto-update on start (default: true)
 FBB_VNC_PASSWORD  # VNC password (default: fuba-browser)
 ```
 
+#### Docker Environment Variables
+
+The following environment variables can be set on the container:
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VNC_PASSWORD` | `fuba-browser` | Base VNC password for direct VNC access |
+| `VNC_PASSWDFILE` | `/tmp/vnc-passwords` | Path to the VNC password file. When set, enables per-token password rotation |
+| `VNC_TOKEN_TTL_SECONDS` | `300` | Token expiry time (5 minutes) |
+| `VNC_PASSWORD_TTL_SECONDS` | `600` | Per-token VNC password expiry time (10 minutes). Should be longer than token TTL to allow for connection setup |
+| `VNC_WEB_PORT` | `39001` | Port for noVNC web client redirect |
+
 Example:
 
 ```bash
@@ -123,8 +135,8 @@ docker-compose up
 
 Access points:
 - REST API: `http://localhost:39000`
-- Web VNC (auto-login): `http://localhost:39000/web-vnc`
-- Web VNC (manual): `http://localhost:39001`
+- Web VNC (token-based): Issue a token via `POST /api/web-vnc/token`, then open `http://localhost:39000/web-vnc?token=...`
+- Web VNC (manual): `http://localhost:39001` (password: fuba-browser)
 - VNC: `vnc://localhost:5900` (password: fuba-browser)
 
 ## CLI Tool (`fbb`)
