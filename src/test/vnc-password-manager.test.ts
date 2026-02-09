@@ -19,25 +19,8 @@ describe('VncPasswordManager', () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it('initializeFile creates a file with only the base password', () => {
-    const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
-      passwdFilePath: passwdFile,
-    });
-    mgr.initializeFile();
-
-    const content = fs.readFileSync(passwdFile, 'utf-8');
-    expect(content.trim()).toBe('fuba-browser');
-    const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(1);
-  });
-
-  it('createPassword generates an 8-char password and adds it to the file', () => {
-    const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
-      passwdFilePath: passwdFile,
-    });
-    mgr.initializeFile();
+  it('createPassword generates an 8-char password and writes it to the file', () => {
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
 
     const pw = mgr.createPassword();
     expect(pw).toHaveLength(8);
@@ -45,17 +28,12 @@ describe('VncPasswordManager', () => {
 
     const content = fs.readFileSync(passwdFile, 'utf-8');
     const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(2);
-    expect(lines[0]).toBe('fuba-browser');
-    expect(lines[1]).toBe(pw);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toBe(pw);
   });
 
   it('multiple passwords appear in the file', () => {
-    const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
-      passwdFilePath: passwdFile,
-    });
-    mgr.initializeFile();
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
 
     const pw1 = mgr.createPassword();
     const pw2 = mgr.createPassword();
@@ -63,20 +41,17 @@ describe('VncPasswordManager', () => {
 
     const content = fs.readFileSync(passwdFile, 'utf-8');
     const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(4);
-    expect(lines[0]).toBe('fuba-browser');
+    expect(lines).toHaveLength(3);
     expect(lines).toContain(pw1);
     expect(lines).toContain(pw2);
     expect(lines).toContain(pw3);
   });
 
-  it('purgeExpired removes expired passwords but keeps base password', () => {
+  it('purgeExpired removes expired passwords', () => {
     const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
       passwdFilePath: passwdFile,
       ttlSeconds: 10,
     });
-    mgr.initializeFile();
 
     mgr.createPassword();
     mgr.createPassword();
@@ -88,18 +63,14 @@ describe('VncPasswordManager', () => {
 
     expect(mgr.size).toBe(0);
     const content = fs.readFileSync(passwdFile, 'utf-8');
-    const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toBe('fuba-browser');
+    expect(content).toBe('');
   });
 
   it('purgeExpired keeps non-expired passwords', () => {
     const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
       passwdFilePath: passwdFile,
       ttlSeconds: 60,
     });
-    mgr.initializeFile();
 
     const pw1 = mgr.createPassword();
 
@@ -115,18 +86,13 @@ describe('VncPasswordManager', () => {
     expect(mgr.size).toBe(1);
     const content = fs.readFileSync(passwdFile, 'utf-8');
     const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(2);
-    expect(lines[0]).toBe('fuba-browser');
+    expect(lines).toHaveLength(1);
     expect(lines).toContain(pw2);
     expect(lines).not.toContain(pw1);
   });
 
   it('generated passwords are unique', () => {
-    const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
-      passwdFilePath: passwdFile,
-    });
-    mgr.initializeFile();
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
 
     const passwords = new Set<string>();
     for (let i = 0; i < 100; i++) {
@@ -138,11 +104,9 @@ describe('VncPasswordManager', () => {
 
   it('start and stop manage the purge timer', () => {
     const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
       passwdFilePath: passwdFile,
       ttlSeconds: 10,
     });
-    mgr.initializeFile();
     mgr.createPassword();
     mgr.createPassword();
 
@@ -157,45 +121,30 @@ describe('VncPasswordManager', () => {
     mgr.stop();
   });
 
-  it('initializeFile skips writing if file already has correct base password', () => {
-    // Simulate the file created by entrypoint.sh
-    fs.writeFileSync(passwdFile, 'fuba-browser\n', { mode: 0o600 });
-    const statBefore = fs.statSync(passwdFile);
-
-    const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
-      passwdFilePath: passwdFile,
-    });
-    mgr.initializeFile();
-
-    const statAfter = fs.statSync(passwdFile);
-    // File should not have been rewritten (same inode, same mtime)
-    expect(statAfter.ino).toBe(statBefore.ino);
-  });
-
-  it('initializeFile writes if file has different content', () => {
-    fs.writeFileSync(passwdFile, 'old-password\n', { mode: 0o600 });
-
-    const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
-      passwdFilePath: passwdFile,
-    });
-    mgr.initializeFile();
-
-    const content = fs.readFileSync(passwdFile, 'utf-8');
-    expect(content.trim()).toBe('fuba-browser');
-  });
-
   it('password file has restricted permissions (mode 0600)', () => {
-    const mgr = new VncPasswordManager({
-      basePassword: 'fuba-browser',
-      passwdFilePath: passwdFile,
-    });
-    mgr.initializeFile();
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
+    mgr.createPassword();
 
     const stat = fs.statSync(passwdFile);
     // Check owner-only read/write (0600)
     const mode = stat.mode & 0o777;
     expect(mode).toBe(0o600);
+  });
+
+  it('file is empty when all passwords are purged', () => {
+    const mgr = new VncPasswordManager({
+      passwdFilePath: passwdFile,
+      ttlSeconds: 5,
+    });
+
+    mgr.createPassword();
+    expect(mgr.size).toBe(1);
+
+    vi.advanceTimersByTime(6_000);
+    mgr.purgeExpired();
+
+    expect(mgr.size).toBe(0);
+    const content = fs.readFileSync(passwdFile, 'utf-8');
+    expect(content).toBe('');
   });
 });

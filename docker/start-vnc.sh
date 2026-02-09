@@ -9,9 +9,9 @@ sleep 2
 # Start window manager
 DISPLAY=:99 fluxbox &
 
-# Initialize VNC password file and start x11vnc
+# Initialize empty VNC password file and start x11vnc
 VNC_PASSWDFILE="${VNC_PASSWDFILE:-/tmp/vnc-passwords}"
-echo "${VNC_PASSWORD:-fuba-browser}" > "${VNC_PASSWDFILE}"
+: > "${VNC_PASSWDFILE}"
 chmod 600 "${VNC_PASSWDFILE}"
 x11vnc -display :99 -forever -passwdfile "read:${VNC_PASSWDFILE}" -shared -rfbport 5900 &
 

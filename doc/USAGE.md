@@ -79,7 +79,6 @@ FBB_IMAGE         # Image name (default: ghcr.io/fuba/fuba-browser)
 FBB_TAG           # Image tag (default: latest)
 FBB_SHM_SIZE      # Shared memory size (default: 2g)
 FBB_AUTO_UPDATE   # Auto-update on start (default: true)
-FBB_VNC_PASSWORD  # VNC password (default: fuba-browser)
 ```
 
 #### Docker Environment Variables
@@ -88,8 +87,7 @@ The following environment variables can be set on the container:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `VNC_PASSWORD` | `fuba-browser` | Base VNC password for direct VNC access |
-| `VNC_PASSWDFILE` | `/tmp/vnc-passwords` | Path to the VNC password file. When set, enables per-token password rotation |
+| `VNC_PASSWDFILE` | `/tmp/vnc-passwords` | Path to the VNC password file. Enables dynamic per-token password management |
 | `VNC_TOKEN_TTL_SECONDS` | `300` | Token expiry time (5 minutes) |
 | `VNC_PASSWORD_TTL_SECONDS` | `600` | Per-token VNC password expiry time (10 minutes). Should be longer than token TTL to allow for connection setup |
 | `VNC_WEB_PORT` | `39001` | Port for noVNC web client redirect |

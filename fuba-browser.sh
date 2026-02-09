@@ -19,7 +19,6 @@ IMAGE_NAME="${FBB_IMAGE:-ghcr.io/fuba/fuba-browser}"
 IMAGE_TAG="${FBB_TAG:-latest}"
 SHM_SIZE="${FBB_SHM_SIZE:-2g}"
 AUTO_UPDATE="${FBB_AUTO_UPDATE:-true}"
-VNC_PASSWORD="${FBB_VNC_PASSWORD:-fuba-browser}"
 
 # Default values for arguments
 DEFAULT_CONTAINER_NAME="fuba-browser"
@@ -183,7 +182,6 @@ start_container() {
     docker run -d \
         --name "${CONTAINER_NAME}" \
         $port_args \
-        -e "VNC_PASSWORD=${VNC_PASSWORD}" \
         --shm-size="${SHM_SIZE}" \
         "${IMAGE_NAME}:${IMAGE_TAG}"
 
@@ -326,7 +324,7 @@ show_access_info() {
     echo "  REST API: http://localhost:${API_PORT}"
     echo "  Web VNC:  http://localhost:${VNC_WEB_PORT}"
     if [ -n "$VNC_PORT" ]; then
-        echo "  VNC:      vnc://localhost:${VNC_PORT} (password: ${VNC_PASSWORD})"
+        echo "  VNC:      vnc://localhost:${VNC_PORT} (dynamic password via API token)"
     fi
     echo ""
 }
@@ -417,7 +415,6 @@ Environment Variables:
   FBB_TAG           Image tag (default: latest)
   FBB_SHM_SIZE      Shared memory size (default: 2g)
   FBB_AUTO_UPDATE   Auto-update on start (default: true)
-  FBB_VNC_PASSWORD  VNC password (default: fuba-browser)
 
 Examples:
   # Start with default settings

@@ -100,20 +100,18 @@ async function main() {
   browserController = new BrowserController(page!, context!);
   snapshotGenerator = new SnapshotGenerator(page!);
 
-  // Initialize VNC password manager if VNC_PASSWORD and VNC_PASSWDFILE are set
-  const vncPassword = process.env.VNC_PASSWORD;
+  // Initialize VNC password manager if VNC_PASSWDFILE is set.
+  // No base password — all VNC access requires a dynamic password via API token.
+  // Password file is created by docker/entrypoint.sh before supervisord starts.
   const vncPasswdFile = process.env.VNC_PASSWDFILE;
-  if (vncPassword && vncPasswdFile) {
+  if (vncPasswdFile) {
     const ttlSeconds = process.env.VNC_PASSWORD_TTL_SECONDS
       ? Number.parseInt(process.env.VNC_PASSWORD_TTL_SECONDS, 10)
       : undefined;
     vncPasswordManager = new VncPasswordManager({
-      basePassword: vncPassword,
       passwdFilePath: vncPasswdFile,
       ttlSeconds,
     });
-    // Password file is created by docker/entrypoint.sh before supervisord starts.
-    // Do NOT call initializeFile() here to avoid overwriting the file while x11vnc is running.
     vncPasswordManager.start();
     console.log(`VNC password manager started (file: ${vncPasswdFile})`);
   }
