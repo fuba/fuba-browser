@@ -27,8 +27,20 @@ export class VncPasswordManager {
     this.ttlMs = (options.ttlSeconds ?? DEFAULT_PASSWORD_TTL_SECONDS) * 1000;
   }
 
-  /** Initialize the password file with just the base password. */
+  /**
+   * Initialize the password file with just the base password.
+   * Skips writing if the file already exists with the correct base password
+   * to avoid disrupting x11vnc (which may crash on file replacement).
+   */
   initializeFile(): void {
+    try {
+      const existing = fs.readFileSync(this.passwdFilePath, 'utf-8');
+      if (existing.trim() === this.basePassword) {
+        return;
+      }
+    } catch {
+      // File doesn't exist yet, create it
+    }
     this.writePasswordFile();
   }
 
