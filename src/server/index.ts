@@ -6,6 +6,7 @@ import { setupRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/error.js';
 import { ResetBrowserFn } from './routes/system.js';
 import { TokenStore } from './token-store.js';
+import { VncPasswordManager } from './vnc-password-manager.js';
 
 const DEFAULT_VNC_WEB_PORT = 39001;
 
@@ -46,6 +47,7 @@ export function buildWebVncRedirectUrl(req: Request, vncWebPort: number, vncPass
 export interface ServerOptions {
   resetBrowser?: ResetBrowserFn;
   tokenStore?: TokenStore;
+  vncPasswordManager?: VncPasswordManager;
 }
 
 export async function startApiServer(
@@ -89,7 +91,8 @@ export async function startApiServer(
       return res.status(401).json({ success: false, error: 'Invalid or expired token' });
     }
 
-    const redirectUrl = buildWebVncRedirectUrl(req, vncWebPort, vncPassword, metadata.vncHost);
+    const effectivePassword = metadata.vncPassword || vncPassword;
+    const redirectUrl = buildWebVncRedirectUrl(req, vncWebPort, effectivePassword, metadata.vncHost);
     return res.redirect(302, redirectUrl);
   });
 

@@ -4,6 +4,7 @@ import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { PageManager } from '../browser/page-manager.js';
 import { getBrowserConfig } from '../config/browser-config.js';
+import { VncPasswordManager } from '../server/vnc-password-manager.js';
 
 // Use a standard Chrome User-Agent to avoid detection as automation
 const CHROME_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
@@ -14,6 +15,7 @@ let page: Page | null = null;
 let browserController: BrowserController | null = null;
 let snapshotGenerator: SnapshotGenerator | null = null;
 let pageManager: PageManager | null = null;
+let vncPasswordManager: VncPasswordManager | null = null;
 
 // Initialize browser, context, page, and page manager
 async function initializeBrowser() {
@@ -98,10 +100,28 @@ async function main() {
   browserController = new BrowserController(page!, context!);
   snapshotGenerator = new SnapshotGenerator(page!);
 
+  // Initialize VNC password manager if VNC_PASSWORD and VNC_PASSWDFILE are set
+  const vncPassword = process.env.VNC_PASSWORD;
+  const vncPasswdFile = process.env.VNC_PASSWDFILE;
+  if (vncPassword && vncPasswdFile) {
+    const ttlSeconds = process.env.VNC_PASSWORD_TTL_SECONDS
+      ? Number.parseInt(process.env.VNC_PASSWORD_TTL_SECONDS, 10)
+      : undefined;
+    vncPasswordManager = new VncPasswordManager({
+      basePassword: vncPassword,
+      passwdFilePath: vncPasswdFile,
+      ttlSeconds,
+    });
+    vncPasswordManager.initializeFile();
+    vncPasswordManager.start();
+    console.log(`VNC password manager started (file: ${vncPasswdFile})`);
+  }
+
   // Start API server with reset callback
   const apiPort = process.env.API_PORT || 39000;
   await startApiServer(Number(apiPort), browserController, snapshotGenerator, {
     resetBrowser,
+    vncPasswordManager: vncPasswordManager ?? undefined,
   });
 
   console.log(`API server started on port ${apiPort}`);
@@ -128,6 +148,11 @@ async function shutdown() {
   if (browser) {
     await browser.close().catch(() => {});
     browser = null;
+  }
+
+  if (vncPasswordManager) {
+    vncPasswordManager.stop();
+    vncPasswordManager = null;
   }
 
   browserController = null;

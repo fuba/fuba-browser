@@ -98,4 +98,20 @@ describe('TokenStore', () => {
     const result = store.consumeToken(token);
     expect(result).toEqual({});
   });
+
+  it('stores and returns metadata with vncPassword', () => {
+    const store = new TokenStore(60);
+    const { token } = store.createToken({ vncPassword: 'random123' });
+
+    const result = store.consumeToken(token);
+    expect(result).toEqual({ vncPassword: 'random123' });
+  });
+
+  it('stores and returns metadata with both vncHost and vncPassword', () => {
+    const store = new TokenStore(60);
+    const { token } = store.createToken({ vncHost: 'puma2:39101', vncPassword: 'abc12345' });
+
+    const result = store.consumeToken(token);
+    expect(result).toEqual({ vncHost: 'puma2:39101', vncPassword: 'abc12345' });
+  });
 });

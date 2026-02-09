@@ -4,6 +4,7 @@ const DEFAULT_TTL_SECONDS = 300; // 5 minutes
 
 export interface TokenMetadata {
   vncHost?: string;
+  vncPassword?: string;
 }
 
 interface TokenEntry {
