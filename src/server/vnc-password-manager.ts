@@ -78,7 +78,7 @@ export class VncPasswordManager {
     return this.passwords.size;
   }
 
-  /** Generate a random password of PASSWORD_LENGTH alphanumeric characters. */
+  /** Generate a random password of PASSWORD_LENGTH base64url characters (A-Za-z0-9_-). */
   private static generatePassword(): string {
     return crypto.randomBytes(16).toString('base64url').slice(0, PASSWORD_LENGTH);
   }
@@ -95,8 +95,10 @@ export class VncPasswordManager {
       if (first) {
         return first.slice(0, PASSWORD_LENGTH);
       }
-    } catch {
-      // File doesn't exist yet — generate a fresh password
+    } catch (err) {
+      // File doesn't exist yet — generate a fresh password.
+      // Re-throw unexpected errors (permission, I/O) so they are not silently hidden.
+      if ((err as NodeJS.ErrnoException).code !== 'ENOENT') throw err;
     }
     return VncPasswordManager.generatePassword();
   }
