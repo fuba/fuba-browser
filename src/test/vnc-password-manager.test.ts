@@ -157,6 +157,35 @@ describe('VncPasswordManager', () => {
     mgr.stop();
   });
 
+  it('initializeFile skips writing if file already has correct base password', () => {
+    // Simulate the file created by entrypoint.sh
+    fs.writeFileSync(passwdFile, 'fuba-browser\n', { mode: 0o600 });
+    const statBefore = fs.statSync(passwdFile);
+
+    const mgr = new VncPasswordManager({
+      basePassword: 'fuba-browser',
+      passwdFilePath: passwdFile,
+    });
+    mgr.initializeFile();
+
+    const statAfter = fs.statSync(passwdFile);
+    // File should not have been rewritten (same inode, same mtime)
+    expect(statAfter.ino).toBe(statBefore.ino);
+  });
+
+  it('initializeFile writes if file has different content', () => {
+    fs.writeFileSync(passwdFile, 'old-password\n', { mode: 0o600 });
+
+    const mgr = new VncPasswordManager({
+      basePassword: 'fuba-browser',
+      passwdFilePath: passwdFile,
+    });
+    mgr.initializeFile();
+
+    const content = fs.readFileSync(passwdFile, 'utf-8');
+    expect(content.trim()).toBe('fuba-browser');
+  });
+
   it('password file has restricted permissions (mode 0600)', () => {
     const mgr = new VncPasswordManager({
       basePassword: 'fuba-browser',

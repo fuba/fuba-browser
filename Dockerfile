@@ -64,6 +64,8 @@ COPY .env.example ./.env
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 COPY docker/start-vnc.sh /usr/local/bin/start-vnc.sh
 RUN chmod +x /usr/local/bin/start-vnc.sh
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # Copy fontconfig to prioritize Noto Sans CJK JP
 COPY docker/fonts.conf /etc/fonts/conf.d/99-noto-cjk-jp.conf
@@ -93,5 +95,6 @@ ENV DISPLAY=:99 \
     HEADLESS=false \
     NODE_ENV=production
 
-# Start supervisor
+# Entrypoint creates VNC password file before supervisord starts services
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

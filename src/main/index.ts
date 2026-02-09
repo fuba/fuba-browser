@@ -112,7 +112,8 @@ async function main() {
       passwdFilePath: vncPasswdFile,
       ttlSeconds,
     });
-    vncPasswordManager.initializeFile();
+    // Password file is created by docker/entrypoint.sh before supervisord starts.
+    // Do NOT call initializeFile() here to avoid overwriting the file while x11vnc is running.
     vncPasswordManager.start();
     console.log(`VNC password manager started (file: ${vncPasswdFile})`);
   }
