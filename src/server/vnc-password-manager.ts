@@ -12,36 +12,16 @@ interface PasswordEntry {
 
 export class VncPasswordManager {
   private readonly passwords = new Map<string, PasswordEntry>();
-  private readonly basePassword: string;
   private readonly passwdFilePath: string;
   private readonly ttlMs: number;
   private purgeTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: {
-    basePassword: string;
     passwdFilePath: string;
     ttlSeconds?: number;
   }) {
-    this.basePassword = options.basePassword;
     this.passwdFilePath = options.passwdFilePath;
     this.ttlMs = (options.ttlSeconds ?? DEFAULT_PASSWORD_TTL_SECONDS) * 1000;
-  }
-
-  /**
-   * Initialize the password file with just the base password.
-   * Skips writing if the file already exists with the correct base password
-   * to avoid disrupting x11vnc (which may crash on file replacement).
-   */
-  initializeFile(): void {
-    try {
-      const existing = fs.readFileSync(this.passwdFilePath, 'utf-8');
-      if (existing.trim() === this.basePassword) {
-        return;
-      }
-    } catch {
-      // File doesn't exist yet, create it
-    }
-    this.writePasswordFile();
   }
 
   /** Generate a random 8-char password, add to file and track with TTL. */
@@ -86,22 +66,24 @@ export class VncPasswordManager {
     }
   }
 
-  /** Number of dynamic (non-base) passwords currently tracked. */
+  /** Number of dynamic passwords currently tracked. */
   get size(): number {
     return this.passwords.size;
   }
 
   /**
-   * Write base password + all dynamic passwords to file atomically.
+   * Write all dynamic passwords to file atomically.
+   * When no passwords exist, writes an empty file so x11vnc rejects all connections.
    * Uses fsync before rename to ensure x11vnc (which re-reads the file
    * on each connection via -passwdfile read:) always sees the latest content.
    */
   private writePasswordFile(): void {
-    const lines = [this.basePassword];
+    const lines: string[] = [];
     for (const entry of this.passwords.values()) {
       lines.push(entry.password);
     }
-    const content = lines.join('\n') + '\n';
+    // When no passwords, write empty content so x11vnc rejects all connections
+    const content = lines.length > 0 ? lines.join('\n') + '\n' : '';
 
     const tmpPath = this.passwdFilePath + '.tmp';
     const dir = path.dirname(this.passwdFilePath);

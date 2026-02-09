@@ -60,8 +60,8 @@ export function setupRoutes(
     app.use('/api', systemRoutes(options.resetBrowser));
   }
 
-  // Web VNC token routes
-  if (options.tokenStore) {
+  // Web VNC token routes (requires both tokenStore and vncPasswordManager)
+  if (options.tokenStore && options.vncPasswordManager) {
     app.use('/api', webVncRoutes(options.tokenStore, options.vncPasswordManager));
   }
 }

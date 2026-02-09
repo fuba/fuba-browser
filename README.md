@@ -282,7 +282,6 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `API_PORT` | `39000` | API server port |
-| `VNC_PASSWORD` | `fuba-browser` | VNC connection password |
 | `VNC_WEB_PORT` | `39001` | Web VNC (noVNC websockify) port |
 | `VNC_TOKEN_TTL_SECONDS` | `300` | One-time VNC token TTL in seconds |
 

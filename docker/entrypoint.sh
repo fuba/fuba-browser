@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Create initial VNC password file before any services start.
-# This ensures the file exists before x11vnc launches,
-# eliminating the race condition between x11vnc and VncPasswordManager.
+# Create empty VNC password file before any services start.
+# With no passwords, x11vnc rejects all connections until
+# a dynamic password is generated via the API.
 VNC_PASSWDFILE="${VNC_PASSWDFILE:-/tmp/vnc-passwords}"
-echo "${VNC_PASSWORD:-fuba-browser}" > "${VNC_PASSWDFILE}"
+: > "${VNC_PASSWDFILE}"
 chmod 600 "${VNC_PASSWDFILE}"
 
 exec "$@"

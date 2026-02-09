@@ -80,8 +80,7 @@ USER app
 # Expose ports
 EXPOSE 39000 5900 6080
 
-# Set VNC password default and password file path
-ENV VNC_PASSWORD=fuba-browser
+# Set VNC password file path (no base password — dynamic passwords only)
 ENV VNC_PASSWDFILE=/tmp/vnc-passwords
 
 # Display and viewport configuration
