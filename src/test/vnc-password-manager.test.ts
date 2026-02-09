@@ -136,6 +136,57 @@ describe('VncPasswordManager', () => {
     expect(mode).toBe(0o600);
   });
 
+  it('reuses first line of existing password file as internal password', () => {
+    // Simulate entrypoint.sh creating the file before VncPasswordManager starts
+    fs.writeFileSync(passwdFile, 'seedpass\nbootpw00\n', { mode: 0o600 });
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
+
+    const dyn = mgr.createPassword();
+    const content = fs.readFileSync(passwdFile, 'utf-8');
+    const lines = content.trim().split('\n');
+
+    // First line must be preserved from the original file
+    expect(lines[0]).toBe('seedpass');
+    expect(lines).toContain(dyn);
+  });
+
+  it('generates internal password when file does not exist', () => {
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
+
+    mgr.createPassword();
+    const content = fs.readFileSync(passwdFile, 'utf-8');
+    const lines = content.trim().split('\n');
+
+    // Internal password should be generated (8 chars)
+    expect(lines[0]).toHaveLength(8);
+    expect(lines).toHaveLength(2);
+  });
+
+  it('all passwords are 8 chars (x11vnc compatible)', () => {
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
+    const dyn = mgr.createPassword();
+    const content = fs.readFileSync(passwdFile, 'utf-8');
+    const lines = content.trim().split('\n');
+
+    // Internal password
+    expect(lines[0]).toHaveLength(8);
+    // Dynamic password
+    expect(dyn).toHaveLength(8);
+  });
+
+  it('truncates existing internal password to 8 chars if longer', () => {
+    // Simulate a file with a longer password (e.g., from older version)
+    fs.writeFileSync(passwdFile, 'this-is-a-very-long-password\n', { mode: 0o600 });
+    const mgr = new VncPasswordManager({ passwdFilePath: passwdFile });
+
+    mgr.createPassword();
+    const content = fs.readFileSync(passwdFile, 'utf-8');
+    const lines = content.trim().split('\n');
+
+    expect(lines[0]).toBe('this-is-');
+    expect(lines[0]).toHaveLength(8);
+  });
+
   it('file always contains at least internal password after purge', () => {
     const mgr = new VncPasswordManager({
       passwdFilePath: passwdFile,
