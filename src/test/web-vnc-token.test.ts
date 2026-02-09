@@ -1,9 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { webVncRoutes } from '../server/routes/web-vnc.js';
 import { TokenStore } from '../server/token-store.js';
 import { buildWebVncRedirectUrl } from '../server/index.js';
+import { VncPasswordManager } from '../server/vnc-password-manager.js';
 
 describe('Web VNC Token Integration', () => {
   let app: express.Express;
@@ -206,5 +210,141 @@ describe('Web VNC Token Integration', () => {
       expect(vncRes.headers.location).toContain(':39001');
       expect(vncRes.headers.location).toContain('vnc.html');
     });
+  });
+});
+
+describe('Web VNC Token Integration with VncPasswordManager', () => {
+  let app: express.Express;
+  let tokenStore: TokenStore;
+  let vncPasswordManager: VncPasswordManager;
+  let tmpDir: string;
+  let passwdFile: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vnc-pw-integ-'));
+    passwdFile = path.join(tmpDir, 'vnc-passwords');
+
+    app = express();
+    app.use(express.json());
+    tokenStore = new TokenStore(60);
+    vncPasswordManager = new VncPasswordManager({
+      basePassword: 'fuba-browser',
+      passwdFilePath: passwdFile,
+    });
+    vncPasswordManager.initializeFile();
+
+    app.use('/api', webVncRoutes(tokenStore, vncPasswordManager));
+
+    // Token-gated /web-vnc endpoint (mirrors server/index.ts logic)
+    app.get('/web-vnc', (req, res) => {
+      const vncPassword = process.env.VNC_PASSWORD;
+      if (!vncPassword) {
+        return res.status(503).json({ success: false, error: 'VNC password is not configured' });
+      }
+      const token = req.query.token as string | undefined;
+      if (!token) {
+        return res.status(401).json({ success: false, error: 'Token is required' });
+      }
+      const metadata = tokenStore.consumeToken(token);
+      if (!metadata) {
+        return res.status(401).json({ success: false, error: 'Invalid or expired token' });
+      }
+      const effectivePassword = metadata.vncPassword || vncPassword;
+      const redirectUrl = buildWebVncRedirectUrl(req, 39001, effectivePassword, metadata.vncHost);
+      return res.redirect(302, redirectUrl);
+    });
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vncPasswordManager.stop();
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  it('issues token with per-token password and uses it in redirect', async () => {
+    vi.stubEnv('VNC_PASSWORD', 'secret');
+
+    // Issue token via API
+    const issueRes = await request(app)
+      .post('/api/web-vnc/token')
+      .send();
+    expect(issueRes.status).toBe(200);
+
+    const token = issueRes.body.data.token;
+
+    // Use token - redirect should use per-token password, not base password
+    const vncRes = await request(app)
+      .get(`/web-vnc?token=${token}`)
+      .redirects(0);
+    expect(vncRes.status).toBe(302);
+    expect(vncRes.headers.location).toContain('vnc.html');
+    // Should NOT contain the base VNC_PASSWORD
+    expect(vncRes.headers.location).not.toContain('password=secret');
+    // Should contain an 8-char password
+    const match = vncRes.headers.location.match(/password=([^&]+)/);
+    expect(match).not.toBeNull();
+    expect(match![1]).toHaveLength(8);
+  });
+
+  it('per-token passwords are unique across token issuances', async () => {
+    vi.stubEnv('VNC_PASSWORD', 'secret');
+
+    const passwords: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      const issueRes = await request(app)
+        .post('/api/web-vnc/token')
+        .send();
+      const token = issueRes.body.data.token;
+      const vncRes = await request(app)
+        .get(`/web-vnc?token=${token}`)
+        .redirects(0);
+      const match = vncRes.headers.location.match(/password=([^&]+)/);
+      passwords.push(match![1]);
+    }
+
+    const uniquePasswords = new Set(passwords);
+    expect(uniquePasswords.size).toBe(5);
+  });
+
+  it('per-token password is added to the password file', async () => {
+    vi.stubEnv('VNC_PASSWORD', 'secret');
+
+    const issueRes = await request(app)
+      .post('/api/web-vnc/token')
+      .send();
+    const token = issueRes.body.data.token;
+    const vncRes = await request(app)
+      .get(`/web-vnc?token=${token}`)
+      .redirects(0);
+
+    const match = vncRes.headers.location.match(/password=([^&]+)/);
+    const perTokenPassword = match![1];
+
+    // Verify the password file contains both base and per-token passwords
+    const content = fs.readFileSync(passwdFile, 'utf-8');
+    const lines = content.trim().split('\n');
+    expect(lines[0]).toBe('fuba-browser');
+    expect(lines).toContain(perTokenPassword);
+  });
+
+  it('works with vncHost and per-token password', async () => {
+    vi.stubEnv('VNC_PASSWORD', 'secret');
+
+    const issueRes = await request(app)
+      .post('/api/web-vnc/token')
+      .send({ vncHost: 'puma2:39101' });
+    expect(issueRes.status).toBe(200);
+
+    const token = issueRes.body.data.token;
+    const vncRes = await request(app)
+      .get(`/web-vnc?token=${token}`)
+      .redirects(0);
+    expect(vncRes.status).toBe(302);
+    expect(vncRes.headers.location).toContain('puma2:39101');
+    expect(vncRes.headers.location).not.toContain('password=secret');
+
+    const match = vncRes.headers.location.match(/password=([^&]+)/);
+    expect(match).not.toBeNull();
+    expect(match![1]).toHaveLength(8);
   });
 });
