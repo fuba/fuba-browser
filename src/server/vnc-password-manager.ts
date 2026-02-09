@@ -14,6 +14,8 @@ export class VncPasswordManager {
   private readonly passwords = new Map<string, PasswordEntry>();
   private readonly passwdFilePath: string;
   private readonly ttlMs: number;
+  // Random internal password that keeps x11vnc alive but is never shared
+  private readonly internalPassword: string;
   private purgeTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: {
@@ -22,6 +24,7 @@ export class VncPasswordManager {
   }) {
     this.passwdFilePath = options.passwdFilePath;
     this.ttlMs = (options.ttlSeconds ?? DEFAULT_PASSWORD_TTL_SECONDS) * 1000;
+    this.internalPassword = crypto.randomBytes(24).toString('base64url');
   }
 
   /** Generate a random 8-char password, add to file and track with TTL. */
@@ -72,18 +75,18 @@ export class VncPasswordManager {
   }
 
   /**
-   * Write all dynamic passwords to file atomically.
-   * When no passwords exist, writes an empty file so x11vnc rejects all connections.
+   * Write internal password + all dynamic passwords to file atomically.
+   * The internal password is a random string generated at construction time
+   * that keeps x11vnc alive but is never shared via the API.
    * Uses fsync before rename to ensure x11vnc (which re-reads the file
    * on each connection via -passwdfile read:) always sees the latest content.
    */
   private writePasswordFile(): void {
-    const lines: string[] = [];
+    const lines = [this.internalPassword];
     for (const entry of this.passwords.values()) {
       lines.push(entry.password);
     }
-    // When no passwords, write empty content so x11vnc rejects all connections
-    const content = lines.length > 0 ? lines.join('\n') + '\n' : '';
+    const content = lines.join('\n') + '\n';
 
     const tmpPath = this.passwdFilePath + '.tmp';
     const dir = path.dirname(this.passwdFilePath);

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Create empty VNC password file before any services start.
-# With no passwords, x11vnc rejects all connections until
-# a dynamic password is generated via the API.
+# Create VNC password file with a random internal password before any services start.
+# x11vnc requires at least one valid password line to start.
+# This password is never shared — actual access requires dynamic passwords via API.
 VNC_PASSWDFILE="${VNC_PASSWDFILE:-/tmp/vnc-passwords}"
-: > "${VNC_PASSWDFILE}"
+head -c 6 /dev/urandom | base64 | head -c 8 > "${VNC_PASSWDFILE}"
 chmod 600 "${VNC_PASSWDFILE}"
 
 exec "$@"
