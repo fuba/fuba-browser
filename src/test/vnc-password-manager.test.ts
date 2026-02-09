@@ -28,8 +28,9 @@ describe('VncPasswordManager', () => {
 
     const content = fs.readFileSync(passwdFile, 'utf-8');
     const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(1);
-    expect(lines[0]).toBe(pw);
+    // internal password + dynamic password
+    expect(lines).toHaveLength(2);
+    expect(lines).toContain(pw);
   });
 
   it('multiple passwords appear in the file', () => {
@@ -41,13 +42,14 @@ describe('VncPasswordManager', () => {
 
     const content = fs.readFileSync(passwdFile, 'utf-8');
     const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(3);
+    // internal password + 3 dynamic passwords
+    expect(lines).toHaveLength(4);
     expect(lines).toContain(pw1);
     expect(lines).toContain(pw2);
     expect(lines).toContain(pw3);
   });
 
-  it('purgeExpired removes expired passwords', () => {
+  it('purgeExpired removes expired passwords but keeps internal password', () => {
     const mgr = new VncPasswordManager({
       passwdFilePath: passwdFile,
       ttlSeconds: 10,
@@ -63,7 +65,9 @@ describe('VncPasswordManager', () => {
 
     expect(mgr.size).toBe(0);
     const content = fs.readFileSync(passwdFile, 'utf-8');
-    expect(content).toBe('');
+    const lines = content.trim().split('\n');
+    // Only internal password remains
+    expect(lines).toHaveLength(1);
   });
 
   it('purgeExpired keeps non-expired passwords', () => {
@@ -86,7 +90,8 @@ describe('VncPasswordManager', () => {
     expect(mgr.size).toBe(1);
     const content = fs.readFileSync(passwdFile, 'utf-8');
     const lines = content.trim().split('\n');
-    expect(lines).toHaveLength(1);
+    // internal password + pw2
+    expect(lines).toHaveLength(2);
     expect(lines).toContain(pw2);
     expect(lines).not.toContain(pw1);
   });
@@ -131,7 +136,7 @@ describe('VncPasswordManager', () => {
     expect(mode).toBe(0o600);
   });
 
-  it('file is empty when all passwords are purged', () => {
+  it('file always contains at least internal password after purge', () => {
     const mgr = new VncPasswordManager({
       passwdFilePath: passwdFile,
       ttlSeconds: 5,
@@ -145,6 +150,8 @@ describe('VncPasswordManager', () => {
 
     expect(mgr.size).toBe(0);
     const content = fs.readFileSync(passwdFile, 'utf-8');
-    expect(content).toBe('');
+    // File is never empty — internal password keeps x11vnc alive
+    expect(content.trim().length).toBeGreaterThan(0);
+    expect(content.trim().split('\n')).toHaveLength(1);
   });
 });
