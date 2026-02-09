@@ -79,7 +79,11 @@ export class VncPasswordManager {
     return this.passwords.size;
   }
 
-  /** Write base password + all dynamic passwords to file atomically. */
+  /**
+   * Write base password + all dynamic passwords to file atomically.
+   * Uses fsync before rename to ensure x11vnc (which re-reads the file
+   * on each connection via -passwdfile read:) always sees the latest content.
+   */
   private writePasswordFile(): void {
     const lines = [this.basePassword];
     for (const entry of this.passwords.values()) {
@@ -95,7 +99,10 @@ export class VncPasswordManager {
       fs.mkdirSync(dir, { recursive: true });
     }
 
-    fs.writeFileSync(tmpPath, content, { mode: 0o600 });
+    const fd = fs.openSync(tmpPath, 'w', 0o600);
+    fs.writeSync(fd, content);
+    fs.fsyncSync(fd);
+    fs.closeSync(fd);
     fs.renameSync(tmpPath, this.passwdFilePath);
   }
 }
