@@ -31,6 +31,8 @@ fuba-browser/
 - Express-based HTTP server
 - Route handlers for all endpoints
 - Error handling middleware
+- `VncPasswordManager` - Per-token VNC password rotation via x11vnc `-passwdfile read:` feature
+- `TokenStore` - One-time token management with TTL
 
 ### 4. Markdown Converter (`src/utils/markdown.ts`)
 - Converts HTML to enhanced Markdown
