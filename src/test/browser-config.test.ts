@@ -134,6 +134,40 @@ describe('getBrowserConfig', () => {
     });
   });
 
+  describe('proxy configuration', () => {
+    it('should return undefined proxy when PROXY_SERVER is not set', () => {
+      delete process.env.PROXY_SERVER;
+      const config = getBrowserConfig();
+      expect(config.proxy).toBeUndefined();
+    });
+
+    it('should return ProxyConfig when PROXY_SERVER is set', () => {
+      process.env.PROXY_SERVER = 'http://localhost:13128';
+      const config = getBrowserConfig();
+      expect(config.proxy).toEqual({
+        server: 'http://localhost:13128',
+        bypass: '',
+      });
+    });
+
+    it('should include PROXY_BYPASS when set', () => {
+      process.env.PROXY_SERVER = 'http://localhost:13128';
+      process.env.PROXY_BYPASS = 'localhost,127.0.0.1';
+      const config = getBrowserConfig();
+      expect(config.proxy).toEqual({
+        server: 'http://localhost:13128',
+        bypass: 'localhost,127.0.0.1',
+      });
+    });
+
+    it('should default PROXY_BYPASS to empty string', () => {
+      process.env.PROXY_SERVER = 'http://proxy.example.com:3128';
+      delete process.env.PROXY_BYPASS;
+      const config = getBrowserConfig();
+      expect(config.proxy!.bypass).toBe('');
+    });
+  });
+
   describe('combined configuration', () => {
     it('should return all settings correctly when all env vars are set', () => {
       process.env.HEADLESS = 'false';
@@ -152,6 +186,32 @@ describe('getBrowserConfig', () => {
         timezoneId: 'Europe/Paris',
         viewportWidth: 1920,
         viewportHeight: 1080,
+      });
+    });
+
+    it('should return all settings correctly including proxy', () => {
+      process.env.HEADLESS = 'false';
+      process.env.DEVICE_SCALE_FACTOR = '1';
+      process.env.LOCALE = 'fr-FR';
+      process.env.TIMEZONE_ID = 'Europe/Paris';
+      process.env.VIEWPORT_WIDTH = '1920';
+      process.env.VIEWPORT_HEIGHT = '1080';
+      process.env.PROXY_SERVER = 'http://localhost:13128';
+      process.env.PROXY_BYPASS = 'localhost';
+
+      const config = getBrowserConfig();
+
+      expect(config).toEqual({
+        headless: false,
+        deviceScaleFactor: 1,
+        locale: 'fr-FR',
+        timezoneId: 'Europe/Paris',
+        viewportWidth: 1920,
+        viewportHeight: 1080,
+        proxy: {
+          server: 'http://localhost:13128',
+          bypass: 'localhost',
+        },
       });
     });
   });
