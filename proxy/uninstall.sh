@@ -1,6 +1,7 @@
 #!/bin/bash
 # fuba-proxy uninstaller
 # Removes fuba-proxy services, configuration, and optionally packages
+# Supports: Debian/Ubuntu, Rocky Linux/RHEL/AlmaLinux
 #
 # Usage:
 #   sudo ./uninstall.sh                    # Remove config and services
@@ -27,6 +28,30 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# --- OS Detection ---
+detect_os() {
+  if [[ -f /etc/os-release ]]; then
+    . /etc/os-release
+    case "${ID}" in
+      debian|ubuntu)
+        OS_FAMILY="debian"
+        ;;
+      rocky|rhel|almalinux|centos|ol)
+        OS_FAMILY="rhel"
+        ;;
+      *)
+        OS_FAMILY="unknown"
+        log_warn "Unknown OS: ${ID}. Package removal may not work."
+        ;;
+    esac
+  else
+    OS_FAMILY="unknown"
+    log_warn "Cannot detect OS. Package removal may not work."
+  fi
+}
+
+detect_os
+
 # --- Stop and disable services ---
 log_info "Stopping services..."
 systemctl stop fuba-proxy-tls 2>/dev/null || true
@@ -39,6 +64,26 @@ log_info "Removing systemd unit files..."
 rm -f /etc/systemd/system/fuba-proxy.service
 rm -f /etc/systemd/system/fuba-proxy-tls.service
 systemctl daemon-reload
+
+# --- Close firewall port (RHEL family with firewalld) ---
+if [[ "${OS_FAMILY}" == "rhel" ]]; then
+  if systemctl is-active --quiet firewalld 2>/dev/null; then
+    log_info "Closing port 3129/tcp in firewalld..."
+    firewall-cmd --permanent --remove-port=3129/tcp 2>/dev/null || true
+    firewall-cmd --reload 2>/dev/null || true
+  fi
+fi
+
+# --- Remove SELinux contexts (RHEL family) ---
+if [[ "${OS_FAMILY}" == "rhel" ]]; then
+  if command -v getenforce &>/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" ]]; then
+    log_info "Removing SELinux policies..."
+    semanage fcontext -d -t squid_cache_t "${SPOOL_DIR}(/.*)?" 2>/dev/null || true
+    semanage fcontext -d -t squid_conf_t "${CONF_DIR}(/.*)?" 2>/dev/null || true
+    semanage fcontext -d -t squid_log_t "${LOG_DIR}(/.*)?" 2>/dev/null || true
+    semanage port -d -t stunnel_port_t -p tcp 3129 2>/dev/null || true
+  fi
+fi
 
 # --- Remove configuration ---
 log_info "Removing configuration directory: ${CONF_DIR}"
@@ -58,10 +103,20 @@ rm -rf /run/fuba-proxy
 # --- Optionally remove packages ---
 if [[ "${REMOVE_PACKAGES}" == "true" ]]; then
   log_info "Removing squid and stunnel packages..."
-  apt-get remove -y -qq squid stunnel4
-  apt-get autoremove -y -qq
+  if [[ "${OS_FAMILY}" == "debian" ]]; then
+    apt-get remove -y -qq squid stunnel4
+    apt-get autoremove -y -qq
+  elif [[ "${OS_FAMILY}" == "rhel" ]]; then
+    dnf remove -y -q squid stunnel
+  else
+    log_warn "Cannot remove packages: unknown OS family"
+  fi
 else
-  log_info "Packages (squid, stunnel4) were kept. Set REMOVE_PACKAGES=true to remove them."
+  if [[ "${OS_FAMILY}" == "debian" ]]; then
+    log_info "Packages (squid, stunnel4) were kept. Set REMOVE_PACKAGES=true to remove them."
+  elif [[ "${OS_FAMILY}" == "rhel" ]]; then
+    log_info "Packages (squid, stunnel) were kept. Set REMOVE_PACKAGES=true to remove them."
+  fi
 fi
 
 log_info "fuba-proxy uninstalled successfully"

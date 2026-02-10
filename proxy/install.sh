@@ -1,6 +1,7 @@
 #!/bin/bash
 # fuba-proxy installer
 # Installs and configures Squid + stunnel with mTLS on an exit server
+# Supports: Debian/Ubuntu, Rocky Linux/RHEL/AlmaLinux
 #
 # Usage:
 #   sudo ./install.sh                      # Default mode (all domains allowed)
@@ -32,10 +33,52 @@ if [[ $EUID -ne 0 ]]; then
   exit 1
 fi
 
+# --- OS Detection ---
+detect_os() {
+  if [[ -f /etc/os-release ]]; then
+    . /etc/os-release
+    case "${ID}" in
+      debian|ubuntu)
+        OS_FAMILY="debian"
+        ;;
+      rocky|rhel|almalinux|centos|ol)
+        OS_FAMILY="rhel"
+        ;;
+      *)
+        log_error "Unsupported OS: ${ID}. Supported: debian, ubuntu, rocky, rhel, almalinux"
+        exit 1
+        ;;
+    esac
+  else
+    log_error "Cannot detect OS: /etc/os-release not found"
+    exit 1
+  fi
+  log_info "Detected OS family: ${OS_FAMILY} (${PRETTY_NAME:-${ID}})"
+}
+
+detect_os
+
+# Set OS-specific variables
+if [[ "${OS_FAMILY}" == "debian" ]]; then
+  STUNNEL_PKG="stunnel4"
+  SQUID_USER="proxy"
+  STUNNEL_USER="stunnel4"
+  STUNNEL_GROUP="stunnel4"
+elif [[ "${OS_FAMILY}" == "rhel" ]]; then
+  STUNNEL_PKG="stunnel"
+  SQUID_USER="squid"
+  STUNNEL_USER="nobody"
+  STUNNEL_GROUP="nobody"
+fi
+
 # --- Step 1: Install packages ---
 log_info "Installing squid and stunnel..."
-apt-get update -qq
-apt-get install -y -qq squid stunnel4 openssl
+if [[ "${OS_FAMILY}" == "debian" ]]; then
+  apt-get update -qq
+  apt-get install -y -qq squid "${STUNNEL_PKG}" openssl
+elif [[ "${OS_FAMILY}" == "rhel" ]]; then
+  dnf install -y -q squid "${STUNNEL_PKG}" openssl
+fi
 
 # --- Step 2: Create directories ---
 log_info "Creating directories..."
@@ -46,7 +89,12 @@ log_info "Copying configuration files..."
 cp "${SCRIPT_DIR}/squid.conf" "${CONF_DIR}/squid.conf"
 cp "${SCRIPT_DIR}/allowlist-acl.conf" "${CONF_DIR}/allowlist-acl.conf"
 cp "${SCRIPT_DIR}/allowlist.txt" "${CONF_DIR}/allowlist.txt"
-cp "${SCRIPT_DIR}/stunnel-server.conf" "${CONF_DIR}/stunnel-server.conf"
+
+# Generate stunnel-server.conf with OS-appropriate user/group
+log_info "Generating stunnel server config (user=${STUNNEL_USER}, group=${STUNNEL_GROUP})..."
+sed -e "s/^setuid = .*/setuid = ${STUNNEL_USER}/" \
+    -e "s/^setgid = .*/setgid = ${STUNNEL_GROUP}/" \
+    "${SCRIPT_DIR}/stunnel-server.conf" > "${CONF_DIR}/stunnel-server.conf"
 
 # --- Step 4: Configure allowlist mode ---
 if [[ "${ALLOWLIST_MODE}" == "true" ]]; then
@@ -103,26 +151,67 @@ fi
 
 # --- Step 7: Set permissions ---
 log_info "Setting permissions..."
-chown -R proxy:proxy "${LOG_DIR}" "${SPOOL_DIR}"
-# stunnel4 user needs read access to TLS certs
-chown root:stunnel4 "${TLS_DIR}/server.key" "${TLS_DIR}/server.pem" "${TLS_DIR}/ca.pem"
+chown -R "${SQUID_USER}:${SQUID_USER}" "${LOG_DIR}" "${SPOOL_DIR}"
+chown "root:${STUNNEL_GROUP}" "${TLS_DIR}/server.key" "${TLS_DIR}/server.pem" "${TLS_DIR}/ca.pem"
 chmod 640 "${TLS_DIR}/server.key"
 
-# --- Step 8: Initialize Squid cache ---
+# --- Step 8: SELinux configuration (RHEL family) ---
+if [[ "${OS_FAMILY}" == "rhel" ]]; then
+  if command -v getenforce &>/dev/null && [[ "$(getenforce 2>/dev/null)" != "Disabled" ]]; then
+    log_info "Configuring SELinux policies..."
+    # Allow Squid to use our custom paths
+    semanage fcontext -a -t squid_cache_t "${SPOOL_DIR}(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t squid_conf_t "${CONF_DIR}(/.*)?" 2>/dev/null || true
+    semanage fcontext -a -t squid_log_t "${LOG_DIR}(/.*)?" 2>/dev/null || true
+    restorecon -Rv "${SPOOL_DIR}" "${CONF_DIR}" "${LOG_DIR}" 2>/dev/null || true
+    # Allow stunnel to listen on port 3129
+    semanage port -a -t stunnel_port_t -p tcp 3129 2>/dev/null || true
+    log_info "SELinux policies applied"
+  fi
+fi
+
+# --- Step 9: Initialize Squid cache ---
 log_info "Initializing Squid cache directory..."
 /usr/sbin/squid -f "${CONF_DIR}/squid.conf" -z 2>/dev/null || true
 
-# --- Step 9: Install and start systemd services ---
+# --- Step 10: Install and start systemd services ---
 log_info "Installing systemd services..."
+
+# Detect stunnel binary path (stunnel4 on Debian, stunnel on RHEL)
+STUNNEL_BIN=""
+for candidate in /usr/bin/stunnel /usr/bin/stunnel4; do
+  if [[ -x "${candidate}" ]]; then
+    STUNNEL_BIN="${candidate}"
+    break
+  fi
+done
+if [[ -z "${STUNNEL_BIN}" ]]; then
+  log_error "stunnel binary not found"
+  exit 1
+fi
+log_info "Using stunnel binary: ${STUNNEL_BIN}"
+
 cp "${SCRIPT_DIR}/fuba-proxy.service" /etc/systemd/system/
-cp "${SCRIPT_DIR}/fuba-proxy-tls.service" /etc/systemd/system/
+# Replace placeholder with actual stunnel binary path
+sed "s|__STUNNEL_BIN__|${STUNNEL_BIN}|g" \
+  "${SCRIPT_DIR}/fuba-proxy-tls.service" > /etc/systemd/system/fuba-proxy-tls.service
 systemctl daemon-reload
 systemctl enable fuba-proxy fuba-proxy-tls
 systemctl start fuba-proxy
 systemctl start fuba-proxy-tls
 log_info "Services started"
 
-# --- Step 10: Generate initial client certificate ---
+# --- Step 11: Open firewall port (RHEL family with firewalld) ---
+if [[ "${OS_FAMILY}" == "rhel" ]]; then
+  if systemctl is-active --quiet firewalld 2>/dev/null; then
+    log_info "Opening port 3129/tcp in firewalld..."
+    firewall-cmd --permanent --add-port=3129/tcp
+    firewall-cmd --reload
+    log_info "Firewall port 3129/tcp opened"
+  fi
+fi
+
+# --- Step 12: Generate initial client certificate ---
 log_info "Generating initial client certificate..."
 bash "${SCRIPT_DIR}/cert-gen.sh" default-client
 
