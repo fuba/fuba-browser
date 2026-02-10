@@ -23,7 +23,7 @@ Returns the health status of the API server.
 ### POST /api/web-vnc/token
 Issue a one-time token for noVNC access. The token expires after the configured TTL (default: 5 minutes, configurable via `VNC_TOKEN_TTL_SECONDS` environment variable).
 
-When `VNC_PASSWDFILE` is configured, each token is issued with a unique per-token VNC password instead of using the fixed `VNC_PASSWORD`. This password is automatically added to the x11vnc password file and removed after TTL expiry (default: 10 minutes, configurable via `VNC_PASSWORD_TTL_SECONDS`).
+Each token is issued with a unique dynamic VNC password. This password is automatically added to the x11vnc password file and removed after TTL expiry (default: 10 minutes, configurable via `VNC_PASSWORD_TTL_SECONDS`). There is no fixed base password — all VNC access requires a dynamic password obtained via this API.
 
 **Request Body:**
 ```json
@@ -47,7 +47,7 @@ When `VNC_PASSWDFILE` is configured, each token is issued with a unique per-toke
 }
 ```
 
-**Error (503):** VNC password is not configured.
+**Error (503):** VNC password manager is not configured (missing `VNC_PASSWDFILE`).
 
 **curl example:**
 ```bash
@@ -71,11 +71,11 @@ Consume a one-time token and redirect to the noVNC web client with auto-connect 
 
 **Response:**
 - **302 redirect** to `http://<host>:<port>/vnc.html#password=...&autoconnect=1`
-  - The `password` in the URL fragment is a per-token random password (when `VNC_PASSWDFILE` is configured) or the fixed `VNC_PASSWORD`.
+  - The `password` in the URL fragment is the per-token dynamic password.
   - If the token was issued with `vncHost`, the redirect uses that host:port directly.
   - Otherwise, the host is auto-detected from request headers and the port is set to the configured Web VNC port (`VNC_WEB_PORT`, default: 39001).
 - **401** if the token is missing, invalid, or already consumed.
-- **503** if `VNC_PASSWORD` is not configured.
+- **503** if no VNC password is associated with the token.
 
 **Usage flow:**
 ```bash

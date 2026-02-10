@@ -76,11 +76,6 @@ export async function startApiServer(
   );
 
   app.get('/web-vnc', (req: Request, res: Response) => {
-    const vncPassword = process.env.VNC_PASSWORD;
-    if (!vncPassword) {
-      return res.status(503).json({ success: false, error: 'VNC password is not configured' });
-    }
-
     const token = req.query.token as string | undefined;
     if (!token) {
       return res.status(401).json({ success: false, error: 'Token is required' });
@@ -91,8 +86,11 @@ export async function startApiServer(
       return res.status(401).json({ success: false, error: 'Invalid or expired token' });
     }
 
-    const effectivePassword = metadata.vncPassword || vncPassword;
-    const redirectUrl = buildWebVncRedirectUrl(req, vncWebPort, effectivePassword, metadata.vncHost);
+    if (!metadata.vncPassword) {
+      return res.status(503).json({ success: false, error: 'No VNC password associated with this token' });
+    }
+
+    const redirectUrl = buildWebVncRedirectUrl(req, vncWebPort, metadata.vncPassword, metadata.vncHost);
     return res.redirect(302, redirectUrl);
   });
 
