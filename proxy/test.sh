@@ -31,6 +31,13 @@ log_pass() { echo -e "${GREEN}[PASS]${NC} $*"; ((PASSED++)); }
 log_fail() { echo -e "${RED}[FAIL]${NC} $*"; ((FAILED++)); }
 log_info() { echo -e "${YELLOW}[TEST]${NC} $*"; }
 
+# Helper: run curl and capture HTTP status code without set -e interference
+curl_code() {
+  local code
+  code=$(curl -s -o /dev/null -w "%{http_code}" "$@" 2>/dev/null) || true
+  echo "${code:-000}"
+}
+
 cleanup() {
   if [[ -n "${STUNNEL_CLIENT_PID}" ]] && kill -0 "${STUNNEL_CLIENT_PID}" 2>/dev/null; then
     kill "${STUNNEL_CLIENT_PID}" 2>/dev/null || true
@@ -100,7 +107,7 @@ echo ""
 
 # --- Test 1: Access allowed domain via proxy ---
 log_info "Test 1: Access external site via proxy"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --proxy "${PROXY_URL}" --max-time 15 "http://www.google.com/" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl_code --proxy "${PROXY_URL}" --max-time 15 "http://www.google.com/")
 if [[ "${HTTP_CODE}" =~ ^(200|301|302)$ ]]; then
   log_pass "External access works (HTTP ${HTTP_CODE})"
 else
@@ -109,7 +116,7 @@ fi
 
 # --- Test 2: HTTPS CONNECT via proxy ---
 log_info "Test 2: HTTPS CONNECT via proxy"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --proxy "${PROXY_URL}" --max-time 15 "https://www.google.com/" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl_code --proxy "${PROXY_URL}" --max-time 15 "https://www.google.com/")
 if [[ "${HTTP_CODE}" =~ ^(200|301|302)$ ]]; then
   log_pass "HTTPS CONNECT works (HTTP ${HTTP_CODE})"
 else
@@ -118,7 +125,7 @@ fi
 
 # --- Test 3: Private IP blocking (10.0.0.0/8) ---
 log_info "Test 3: Block access to private IP 10.0.0.1"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --proxy "${PROXY_URL}" --max-time 5 "http://10.0.0.1/" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl_code --proxy "${PROXY_URL}" --max-time 5 "http://10.0.0.1/")
 if [[ "${HTTP_CODE}" == "403" ]]; then
   log_pass "Private IP 10.0.0.1 blocked (HTTP 403)"
 elif [[ "${HTTP_CODE}" == "000" ]]; then
@@ -130,7 +137,7 @@ fi
 
 # --- Test 4: Private IP blocking (192.168.0.0/16) ---
 log_info "Test 4: Block access to private IP 192.168.1.1"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --proxy "${PROXY_URL}" --max-time 5 "http://192.168.1.1/" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl_code --proxy "${PROXY_URL}" --max-time 5 "http://192.168.1.1/")
 if [[ "${HTTP_CODE}" == "403" ]]; then
   log_pass "Private IP 192.168.1.1 blocked (HTTP 403)"
 elif [[ "${HTTP_CODE}" == "000" ]]; then
@@ -141,7 +148,7 @@ fi
 
 # --- Test 5: Private IP blocking (127.0.0.0/8 via proxy) ---
 log_info "Test 5: Block access to loopback via proxy"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --proxy "${PROXY_URL}" --max-time 5 "http://127.0.0.2/" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl_code --proxy "${PROXY_URL}" --max-time 5 "http://127.0.0.2/")
 if [[ "${HTTP_CODE}" == "403" ]]; then
   log_pass "Loopback 127.0.0.2 blocked (HTTP 403)"
 elif [[ "${HTTP_CODE}" == "000" ]]; then
@@ -152,7 +159,7 @@ fi
 
 # --- Test 6: Unsafe port blocking ---
 log_info "Test 6: Block access to unsafe port (8080)"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --proxy "${PROXY_URL}" --max-time 5 "http://www.google.com:8080/" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl_code --proxy "${PROXY_URL}" --max-time 5 "http://www.google.com:8080/")
 if [[ "${HTTP_CODE}" == "403" ]]; then
   log_pass "Unsafe port 8080 blocked (HTTP 403)"
 elif [[ "${HTTP_CODE}" == "000" ]]; then
@@ -163,7 +170,7 @@ fi
 
 # --- Test 7: Connection without client certificate ---
 log_info "Test 7: Reject connection without client certificate"
-HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" --proxy "http://${PROXY_HOST}:3129" --max-time 5 "http://www.google.com/" 2>/dev/null || echo "000")
+HTTP_CODE=$(curl_code --proxy "http://${PROXY_HOST}:3129" --max-time 5 "http://www.google.com/")
 if [[ "${HTTP_CODE}" == "000" ]]; then
   log_pass "Connection without client cert rejected"
 else

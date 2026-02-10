@@ -172,7 +172,20 @@ fi
 
 # --- Step 9: Initialize Squid cache ---
 log_info "Initializing Squid cache directory..."
-/usr/sbin/squid -f "${CONF_DIR}/squid.conf" -z 2>/dev/null || true
+# Run squid -z as the squid user to create swap directories with correct ownership
+# Squid 6.x requires swap dirs to exist before first start
+if ! /usr/sbin/squid -f "${CONF_DIR}/squid.conf" -z; then
+  log_warn "squid -z returned non-zero, retrying..."
+  # Ensure spool directory ownership is correct and retry
+  chown -R "${SQUID_USER}:${SQUID_USER}" "${SPOOL_DIR}"
+  /usr/sbin/squid -f "${CONF_DIR}/squid.conf" -z
+fi
+# Verify swap directories were created
+if [[ ! -d "${SPOOL_DIR}/00" ]]; then
+  log_error "Squid cache initialization failed: ${SPOOL_DIR}/00 not found"
+  exit 1
+fi
+log_info "Squid cache directory initialized"
 
 # --- Step 10: Install and start systemd services ---
 log_info "Installing systemd services..."
