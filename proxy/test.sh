@@ -27,8 +27,8 @@ NC='\033[0m'
 PASSED=0
 FAILED=0
 
-log_pass() { echo -e "${GREEN}[PASS]${NC} $*"; ((PASSED++)); }
-log_fail() { echo -e "${RED}[FAIL]${NC} $*"; ((FAILED++)); }
+log_pass() { echo -e "${GREEN}[PASS]${NC} $*"; PASSED=$((PASSED + 1)); }
+log_fail() { echo -e "${RED}[FAIL]${NC} $*"; FAILED=$((FAILED + 1)); }
 log_info() { echo -e "${YELLOW}[TEST]${NC} $*"; }
 
 # Helper: run curl and capture HTTP status code without set -e interference
