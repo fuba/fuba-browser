@@ -170,8 +170,9 @@ log_warn "Press Ctrl+C to cancel"
 echo ""
 
 # Run the server (blocks until download or timeout)
-python3 "${SERVE_SCRIPT}"
-EXIT_CODE=$?
+# Capture exit code without triggering set -e so firewall cleanup always runs
+EXIT_CODE=0
+python3 "${SERVE_SCRIPT}" || EXIT_CODE=$?
 
 # Close firewall port
 if [[ "${FIREWALL_OPENED}" == "true" ]]; then

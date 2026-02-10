@@ -6,7 +6,8 @@ services:
       - "39001:6080"    # Web VNC (noVNC)
       - "39002:5900"    # Raw VNC
     env_file:
-      - .env
+      - path: .env
+        required: false
     environment:
       - API_PORT=39000
       - DISPLAY=:99

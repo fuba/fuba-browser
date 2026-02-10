@@ -227,8 +227,12 @@ if [[ "${OS_FAMILY}" == "rhel" ]]; then
 fi
 
 # --- Step 12: Generate initial client certificate ---
-log_info "Generating initial client certificate..."
-bash "${SCRIPT_DIR}/cert-gen.sh" default-client
+if [[ -d "${CLIENTS_DIR}/default-client" ]]; then
+  log_warn "Default client certificate already exists, skipping generation"
+else
+  log_info "Generating initial client certificate..."
+  bash "${SCRIPT_DIR}/cert-gen.sh" default-client
+fi
 
 # --- Done ---
 echo ""
