@@ -7,6 +7,7 @@ Requires=fuba-proxy.service
 Type=forking
 PIDFile=/run/fuba-proxy/stunnel.pid
 ExecStartPre=/bin/mkdir -p /run/fuba-proxy
+ExecStartPre=/bin/chown __STUNNEL_USER__:__STUNNEL_GROUP__ /run/fuba-proxy
 ExecStart=__STUNNEL_BIN__ /etc/fuba-proxy/stunnel-server.conf
 Restart=on-failure
 RestartSec=5

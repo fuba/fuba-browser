@@ -192,8 +192,10 @@ fi
 log_info "Using stunnel binary: ${STUNNEL_BIN}"
 
 cp "${SCRIPT_DIR}/fuba-proxy.service" /etc/systemd/system/
-# Replace placeholder with actual stunnel binary path
-sed "s|__STUNNEL_BIN__|${STUNNEL_BIN}|g" \
+# Replace placeholders with actual stunnel binary path and user/group
+sed -e "s|__STUNNEL_BIN__|${STUNNEL_BIN}|g" \
+    -e "s|__STUNNEL_USER__|${STUNNEL_USER}|g" \
+    -e "s|__STUNNEL_GROUP__|${STUNNEL_GROUP}|g" \
   "${SCRIPT_DIR}/fuba-proxy-tls.service" > /etc/systemd/system/fuba-proxy-tls.service
 systemctl daemon-reload
 systemctl enable fuba-proxy fuba-proxy-tls
