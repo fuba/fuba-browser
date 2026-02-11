@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import { browserRoutes } from '../server/routes/browser.js';
+import type { BrowserController } from '../browser/controller.js';
 
 describe('Screenshot Routes', () => {
   let app: express.Express;
@@ -33,7 +34,7 @@ describe('Screenshot Routes', () => {
       type: vi.fn(),
     };
 
-    app.use('/api', browserRoutes(mockBrowserController as any));
+    app.use('/api', browserRoutes(mockBrowserController as unknown as BrowserController));
   });
 
   afterEach(() => {
