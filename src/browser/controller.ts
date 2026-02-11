@@ -127,7 +127,7 @@ export class BrowserController {
               class: node.className,
               href: (node as HTMLAnchorElement).href,
               type: (node as HTMLInputElement).type,
-              role: node.getAttribute('role')
+              role: node.getAttribute('role') ?? undefined
             },
             isVisible: rect.top < viewport.height && rect.bottom > 0,
             areaPercentage: areaPercentage
