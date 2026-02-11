@@ -65,6 +65,16 @@ npm test
 npm run test:watch
 ```
 
+### Offline E2E Strategy (No External Internet)
+
+- Use real Playwright + real API routes (no browser/controller mock in E2E).
+- Serve fixture pages from a local ephemeral HTTP server (`127.0.0.1`) inside the test process.
+- Add request blocking in Playwright context to allow only:
+  - `127.0.0.1` / `localhost`
+  - `about:`, `data:`, `blob:`
+- Verify each API group (`browser`, `content`, `snapshot`, `wait`, `getter`, `input`, `storage`, `session`, `state`, `debug`, `export`, `system`, `web-vnc`) against local fixtures.
+- Keep unit tests for edge cases and fast feedback; use offline E2E for end-to-end behavior coverage.
+
 ### Code Quality
 
 ```bash

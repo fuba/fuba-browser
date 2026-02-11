@@ -9,6 +9,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "test": "vitest run",
+    "test:ci": "vitest run --exclude src/test/offline-api-e2e.test.ts",
+    "test:e2e:offline": "vitest run src/test/offline-api-e2e.test.ts",
     "test:watch": "vitest",
     "start": "docker-compose up",
     "stop": "docker-compose down",
