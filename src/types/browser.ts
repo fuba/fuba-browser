@@ -11,7 +11,7 @@ export interface ElementAttributes {
   href?: string;
   type?: string;
   role?: string;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ElementInfo {
@@ -50,7 +50,7 @@ export interface TypeRequest {
   text: string;
 }
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
