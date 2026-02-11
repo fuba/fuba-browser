@@ -321,4 +321,4 @@ The API design and CLI tool were inspired by [vercel-labs/agent-browser](https:/
 
 ## License
 
-CC0 (Creative Commons Zero)
+MIT
