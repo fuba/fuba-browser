@@ -2,6 +2,10 @@ import { Page, BrowserContext, Cookie } from 'playwright';
 import { ElementInfo, PageContent, PdfExportOptions, PdfExportResult, BrowserState, BrowserCookie } from '../types/browser.js';
 import { convertToMarkdown } from '../utils/markdown.js';
 
+type RestorableBrowserCookie = BrowserCookie & {
+  expirationDate?: number;
+};
+
 export class BrowserController {
   private page: Page;
   private context: BrowserContext;
@@ -89,8 +93,8 @@ export class BrowserController {
   }
 
   async getInteractiveElements(): Promise<ElementInfo[]> {
-    const elements = await this.page.evaluate(() => {
-      const result: any[] = [];
+    const elements = await this.page.evaluate<ElementInfo[]>(() => {
+      const result: ElementInfo[] = [];
       const viewport = {
         width: window.innerWidth,
         height: window.innerHeight
@@ -543,7 +547,7 @@ export class BrowserController {
         }
 
         // Handle 'expires' field (also support legacy 'expirationDate' for backwards compatibility)
-        const expires = (cookie as any).expirationDate ?? cookie.expires;
+        const expires = (cookie as RestorableBrowserCookie).expirationDate ?? cookie.expires;
 
         const cookieToSet: Cookie = {
           name: cookie.name,
