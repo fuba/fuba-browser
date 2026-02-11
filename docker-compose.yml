@@ -5,6 +5,9 @@ services:
       - "39000:39000"   # REST API
       - "39001:6080"    # Web VNC (noVNC)
       - "39002:5900"    # Raw VNC
+    env_file:
+      - path: .env
+        required: false
     environment:
       - API_PORT=39000
       - DISPLAY=:99
@@ -12,6 +15,8 @@ services:
       - DISPLAY_HEIGHT=2000
       - VIEWPORT_WIDTH=1200
       - VIEWPORT_HEIGHT=2000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./logs:/app/logs
     shm_size: '2gb'

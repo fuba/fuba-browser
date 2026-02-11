@@ -1,5 +1,10 @@
 // Browser configuration from environment variables
 
+export interface ProxyConfig {
+  server: string;    // e.g. "http://localhost:13128"
+  bypass?: string;   // e.g. "localhost,127.0.0.1"
+}
+
 export interface BrowserConfig {
   headless: boolean;
   deviceScaleFactor: number;
@@ -7,6 +12,7 @@ export interface BrowserConfig {
   timezoneId: string;
   viewportWidth: number;
   viewportHeight: number;
+  proxy?: ProxyConfig;
 }
 
 export function getBrowserConfig(): BrowserConfig {
@@ -16,5 +22,11 @@ export function getBrowserConfig(): BrowserConfig {
   const timezoneId = process.env.TIMEZONE_ID || 'Asia/Tokyo';
   const viewportWidth = Number(process.env.VIEWPORT_WIDTH) || 1200;
   const viewportHeight = Number(process.env.VIEWPORT_HEIGHT) || 2000;
-  return { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight };
+
+  const proxyServer = process.env.PROXY_SERVER;
+  const proxy: ProxyConfig | undefined = proxyServer
+    ? { server: proxyServer, bypass: process.env.PROXY_BYPASS || '' }
+    : undefined;
+
+  return { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy };
 }

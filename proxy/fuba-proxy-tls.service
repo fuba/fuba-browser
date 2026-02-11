@@ -1,0 +1,16 @@
+[Unit]
+Description=fuba-proxy stunnel TLS Terminator (mTLS)
+After=network.target
+Requires=fuba-proxy.service
+
+[Service]
+Type=forking
+PIDFile=/run/fuba-proxy/stunnel.pid
+ExecStartPre=/bin/mkdir -p /run/fuba-proxy
+ExecStartPre=/bin/chown __STUNNEL_USER__:__STUNNEL_GROUP__ /run/fuba-proxy
+ExecStart=__STUNNEL_BIN__ /etc/fuba-proxy/stunnel-server.conf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

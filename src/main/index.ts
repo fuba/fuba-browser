@@ -19,12 +19,12 @@ let vncPasswordManager: VncPasswordManager | null = null;
 
 // Initialize browser, context, page, and page manager
 async function initializeBrowser() {
-  const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight } = getBrowserConfig();
+  const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy } = getBrowserConfig();
 
   console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId}, viewport: ${viewportWidth}x${viewportHeight})...`);
 
-  // Launch browser
-  browser = await chromium.launch({
+  // Build launch options
+  const launchOptions: Parameters<typeof chromium.launch>[0] = {
     headless,
     args: [
       '--no-sandbox',
@@ -32,7 +32,16 @@ async function initializeBrowser() {
       '--disable-dev-shm-usage',
       '--disable-blink-features=AutomationControlled',
     ],
-  });
+  };
+
+  // Add proxy configuration if specified
+  if (proxy) {
+    launchOptions.proxy = { server: proxy.server, bypass: proxy.bypass };
+    console.error(`[System] Using proxy: ${proxy.server}`);
+  }
+
+  // Launch browser
+  browser = await chromium.launch(launchOptions);
 
   // Create browser context with custom user agent, viewport, HiDPI, locale and timezone
   context = await browser.newContext({

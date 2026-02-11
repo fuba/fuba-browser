@@ -20,6 +20,7 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 - **Web VNC** for remote GUI access
 - **Docker-based deployment** with X11 support
 - **Japanese font support** (Noto Sans CJK & Noto Serif CJK)
+- **Egress proxy** - Shared exit server with private network blocking and mTLS authentication
 
 ## Installation
 
@@ -277,6 +278,13 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 | `DISPLAY_WIDTH` | `1200` | Xvfb virtual display width |
 | `DISPLAY_HEIGHT` | `2000` | Xvfb virtual display height |
 
+### Proxy
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PROXY_SERVER` | (none) | Proxy server URL (e.g. `http://host.docker.internal:13128`) |
+| `PROXY_BYPASS` | (none) | Comma-separated list of hosts to bypass proxy |
+
 ### Server
 
 | Variable | Default | Description |
@@ -304,6 +312,7 @@ services:
 - [CLI Reference](cli/README.md)
 - [API Reference](doc/API.md)
 - [Usage Guide](doc/USAGE.md)
+- [Egress Proxy Guide](doc/PROXY.md)
 - [Development Guide](doc/DEVELOPMENT.md)
 
 ## Acknowledgments

@@ -1,0 +1,19 @@
+[Unit]
+Description=fuba-proxy Squid HTTP Proxy
+After=network.target
+Wants=fuba-proxy-tls.service
+
+[Service]
+Type=forking
+PIDFile=/run/fuba-proxy/squid.pid
+ExecStartPre=/usr/sbin/squid -f /etc/fuba-proxy/squid.conf -k parse
+ExecStartPre=/bin/mkdir -p /run/fuba-proxy
+ExecStart=/usr/sbin/squid -f /etc/fuba-proxy/squid.conf
+ExecReload=/usr/sbin/squid -f /etc/fuba-proxy/squid.conf -k reconfigure
+ExecStop=/usr/sbin/squid -f /etc/fuba-proxy/squid.conf -k shutdown
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=4096
+
+[Install]
+WantedBy=multi-user.target

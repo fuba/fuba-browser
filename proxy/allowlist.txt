@@ -1,0 +1,11 @@
+# Default domain allowlist for fuba-proxy
+# One domain per line. Subdomains are matched automatically.
+# Example:
+#   .example.com    - matches example.com and all subdomains
+#   example.com     - matches only example.com
+#
+# Add your allowed domains below:
+.google.com
+.googleapis.com
+.gstatic.com
+.cloudflare.com

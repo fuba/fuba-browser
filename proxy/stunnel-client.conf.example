@@ -1,0 +1,23 @@
+; stunnel client configuration for fuba-proxy
+; Run this on each fuba-browser host to tunnel proxy traffic via mTLS
+;
+; Usage:
+;   1. Copy this file and fill in <PROXY_HOST>
+;   2. Place client.pem, client.key, and ca.pem from cert-gen.sh output
+;   3. Run: stunnel /path/to/stunnel-client.conf
+;   4. Set PROXY_SERVER=http://host.docker.internal:13128 in fuba-browser's .env
+;      (or http://localhost:13128 if not using Docker)
+;
+; Note: Use 0.0.0.0 for accept when Docker containers need to connect via
+;       host.docker.internal. Use 127.0.0.1 if only local processes connect.
+
+pid = /tmp/fuba-proxy-stunnel-client.pid
+
+[fuba-proxy]
+client = yes
+accept = 0.0.0.0:13128
+connect = <PROXY_HOST>:3129
+cert = /path/to/client.pem
+key = /path/to/client.key
+CAfile = /path/to/ca.pem
+verify = 2

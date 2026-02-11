@@ -7,6 +7,40 @@ const turndownService = new TurndownService({
   bulletListMarker: '-'
 });
 
+type BoundingRect = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
+function getSafeBoundingRect(node: Node): BoundingRect | null {
+  const maybeElement = node as Partial<Element> & {
+    getBoundingClientRect?: () => Partial<BoundingRect>;
+  };
+
+  if (typeof maybeElement.getBoundingClientRect !== 'function') {
+    return null;
+  }
+
+  const rect = maybeElement.getBoundingClientRect();
+  if (
+    typeof rect.x !== 'number' ||
+    typeof rect.y !== 'number' ||
+    typeof rect.width !== 'number' ||
+    typeof rect.height !== 'number'
+  ) {
+    return null;
+  }
+
+  return {
+    x: rect.x,
+    y: rect.y,
+    width: rect.width,
+    height: rect.height
+  };
+}
+
 // Custom rules for enhanced markdown
 turndownService.addRule('interactiveElements', {
   filter: (node: Node) => {
@@ -17,11 +51,12 @@ turndownService.addRule('interactiveElements', {
     const element = node as HTMLElement;
     const tagName = element.tagName.toLowerCase();
     const id = element.id ? `#${element.id}` : '';
-    const classes = element.className ? `.${element.className.split(' ').join('.')}` : '';
+    const className = typeof element.className === 'string' ? element.className : '';
+    const classes = className ? `.${className.split(' ').join('.')}` : '';
     const selector = id || classes || tagName;
     
-    // Get bounding box info if available
-    const rect = element.getBoundingClientRect();
+    // Read layout info only when the DOM implementation provides it.
+    const rect = getSafeBoundingRect(node);
     const coords = rect ? `[${Math.round(rect.x)},${Math.round(rect.y)},${Math.round(rect.width)}x${Math.round(rect.height)}]` : '';
     
     switch (tagName) {
