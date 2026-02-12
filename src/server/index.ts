@@ -7,6 +7,7 @@ import { errorHandler } from './middleware/error.js';
 import { ResetBrowserFn } from './routes/system.js';
 import { TokenStore } from './token-store.js';
 import { VncPasswordManager } from './vnc-password-manager.js';
+import { discoveryRoutes } from './routes/discovery.js';
 
 const DEFAULT_VNC_WEB_PORT = 39001;
 
@@ -63,6 +64,8 @@ export async function startApiServer(
   app.use(cors());
   app.use(express.json());
   app.use(express.urlencoded({ extended: true }));
+
+  app.use(discoveryRoutes('0.1.0'));
 
   // Health check
   app.get('/health', (_req: Request, res: Response) => {

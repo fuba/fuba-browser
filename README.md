@@ -10,6 +10,7 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 
 - **REST API** for browser control (navigation, clicking, typing, scrolling)
 - **CLI tool (`fbb`)** for command-line automation
+- **LLM docs endpoint** (`/api/docs`) with bundled markdown export
 - **Snapshot/Ref system** - Accessibility tree with element refs for fast, deterministic targeting
 - **Page content extraction** as extended Markdown format
 - **Wait API** - Wait for selectors, text, URL patterns, page load
@@ -88,6 +89,7 @@ docker-compose up
 
 # Access points:
 # - REST API: http://localhost:39000
+#   - discovery: GET /, GET /api, GET /llms.txt
 # - Web VNC (auto-login): http://localhost:39000/web-vnc
 # - Web VNC (manual): http://localhost:39001
 # - VNC: vnc://localhost:5900 (password: fuba-browser)
@@ -136,6 +138,9 @@ fbb fill @e2 "user@example.com"
 
 # Take screenshot
 fbb screenshot output.png
+
+# Get bundled docs for LLM context
+fbb docs --llm --raw
 
 # Save authentication state
 fbb state save auth.json
@@ -186,6 +191,7 @@ fbb mouse wheel <deltaY>
 ```bash
 fbb get title
 fbb get url
+fbb docs [docId]
 fbb get text <selector>
 fbb get html <selector>
 fbb get value <selector>
@@ -292,6 +298,8 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 | `API_PORT` | `39000` | API server port |
 | `VNC_WEB_PORT` | `39001` | Web VNC (noVNC websockify) port |
 | `VNC_TOKEN_TTL_SECONDS` | `300` | One-time VNC token TTL in seconds |
+| `DOCS_REF` | `v<APP_VERSION>` | Git ref used by `/api/docs` (e.g. `v2.0.1`, `main`) |
+| `DOCS_BASE_URL` | derived from `DOCS_REF` | Full base URL override for `/api/docs` markdown sources |
 
 Example usage in docker-compose.yml:
 

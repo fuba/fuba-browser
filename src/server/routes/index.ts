@@ -14,6 +14,7 @@ import { debugRoutes } from './debug.js';
 import { stateRoutes } from './state.js';
 import { systemRoutes } from './system.js';
 import { webVncRoutes } from './web-vnc.js';
+import { docsRoutes } from './docs.js';
 import { ServerOptions } from '../index.js';
 
 export function setupRoutes(
@@ -54,6 +55,9 @@ export function setupRoutes(
 
   // State routes (save/load authentication state)
   app.use('/api', stateRoutes(browserController));
+
+  // Documentation routes for LLM integration
+  app.use('/api', docsRoutes());
 
   // System routes (reset browser, etc.)
   if (options.resetBrowser) {

@@ -12,6 +12,34 @@ export interface ClientOptions {
   timeout: number;
 }
 
+export interface DocsIndexEntry {
+  id: string;
+  title: string;
+  path: string;
+  sourceUrl: string;
+}
+
+export interface DocsIndexData {
+  documents: DocsIndexEntry[];
+  bundleEndpoint: string;
+}
+
+export interface DocsDocumentData {
+  id: string;
+  title: string;
+  path: string;
+  sourceUrl: string;
+  markdown: string;
+  fetchedAt: string;
+}
+
+export interface DocsBundleData {
+  documents: DocsIndexEntry[];
+  markdown: string;
+  format: string;
+  fetchedAt: string;
+}
+
 export class FubaClient {
   private baseUrl: string;
   private timeout: number;
@@ -166,6 +194,29 @@ export class FubaClient {
   // Get elements
   async elements(): Promise<ApiResponse<unknown>> {
     return this.get('/api/elements');
+  }
+
+  // Documentation for LLM consumption
+  async docsIndex(ids?: string[]): Promise<ApiResponse<DocsIndexData>> {
+    const params = new URLSearchParams();
+    if (ids && ids.length > 0) {
+      params.set('docs', ids.join(','));
+    }
+    const query = params.toString();
+    return this.get(`/api/docs${query ? '?' + query : ''}`);
+  }
+
+  async docsDocument(id: string): Promise<ApiResponse<DocsDocumentData>> {
+    return this.get(`/api/docs/${encodeURIComponent(id)}`);
+  }
+
+  async docsBundle(ids?: string[]): Promise<ApiResponse<DocsBundleData>> {
+    const params = new URLSearchParams();
+    if (ids && ids.length > 0) {
+      params.set('docs', ids.join(','));
+    }
+    const query = params.toString();
+    return this.get(`/api/docs/llm${query ? '?' + query : ''}`);
   }
 
   // Get page info

@@ -22,11 +22,12 @@ Quick Start:
   fbb click <selector>        Click an element (@ref or CSS)
   fbb fill <selector> <text>  Fill text into an element
   fbb screenshot [path]       Take a screenshot
+  fbb docs --llm --raw        Get LLM-ready docs bundle
 
 Common Commands:
   Navigation:   open, snapshot
   Interaction:  click, type, fill, hover, scroll
-  Information:  get title|url|text, is visible|enabled
+  Information:  get title|url|text, docs
   Wait:         wait selector|text|url|load
   State:        state save|load|info, cookies, storage
   VNC:          vnc [--vnc-host host:port]
@@ -297,6 +298,54 @@ program
       output(result.data);
     } else {
       error('Failed to get elements', result.error);
+    }
+  });
+
+// docs
+program
+  .command('docs [docId]')
+  .description('Get documentation for LLM usage (index, single doc, or bundled docs)')
+  .option('-l, --llm', 'Get bundled docs for LLM ingestion')
+  .option('--docs <ids>', 'Comma-separated doc IDs for list/filter (e.g. api,cli,usage)')
+  .option('-r, --raw', 'Output markdown only (single doc or --llm)')
+  .action(async (docId: string | undefined, options: { llm?: boolean; docs?: string; raw?: boolean }) => {
+    const docIds = options.docs
+      ? options.docs.split(',').map((id) => id.trim()).filter((id) => id.length > 0)
+      : undefined;
+
+    if (options.llm) {
+      const result = await client.docsBundle(docIds);
+      if (result.success && result.data) {
+        if (options.raw) {
+          raw(result.data.markdown);
+        } else {
+          output(result.data);
+        }
+      } else {
+        error('Failed to get bundled docs', result.error);
+      }
+      return;
+    }
+
+    if (docId) {
+      const result = await client.docsDocument(docId);
+      if (result.success && result.data) {
+        if (options.raw) {
+          raw(result.data.markdown);
+        } else {
+          output(result.data);
+        }
+      } else {
+        error('Failed to get document', result.error);
+      }
+      return;
+    }
+
+    const result = await client.docsIndex(docIds);
+    if (result.success) {
+      output(result.data);
+    } else {
+      error('Failed to get docs index', result.error);
     }
   });
 
