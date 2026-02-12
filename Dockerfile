@@ -71,6 +71,9 @@ RUN chmod +x /usr/local/bin/entrypoint.sh
 COPY docker/fonts.conf /etc/fonts/conf.d/99-noto-cjk-jp.conf
 RUN fc-cache -fv
 
+# Copy license files into the image
+COPY LICENSE THIRD_PARTY_NOTICES.md /usr/share/licenses/fuba-browser/
+
 # Set permissions
 RUN chown -R app:app /app
 
