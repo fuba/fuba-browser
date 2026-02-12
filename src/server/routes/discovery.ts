@@ -6,6 +6,7 @@ interface ServiceDiscoveryPayload {
   endpoints: {
     health: string;
     api: string;
+    llmsTxt: string;
     docs: {
       index: string;
       bundle: string;
@@ -17,6 +18,7 @@ interface ServiceDiscoveryPayload {
 
 interface ApiDiscoveryPayload {
   message: string;
+  llmsTxt: string;
   docs: {
     list: string;
     single: string;
@@ -36,6 +38,7 @@ function buildServiceDiscoveryPayload(version: string): ServiceDiscoveryPayload 
     endpoints: {
       health: '/health',
       api: '/api',
+      llmsTxt: '/llms.txt',
       docs: {
         index: '/api/docs',
         bundle: '/api/docs/llm',
@@ -53,6 +56,7 @@ function buildServiceDiscoveryPayload(version: string): ServiceDiscoveryPayload 
 function buildApiDiscoveryPayload(): ApiDiscoveryPayload {
   return {
     message: 'API discovery entrypoint',
+    llmsTxt: '/llms.txt',
     docs: {
       list: '/api/docs',
       single: '/api/docs/{docId}',
@@ -64,6 +68,23 @@ function buildApiDiscoveryPayload(): ApiDiscoveryPayload {
       llmBundle: 'curl -s http://localhost:39000/api/docs/llm?format=markdown',
     },
   };
+}
+
+function buildLlmsTxt(version: string): string {
+  return [
+    '# fuba-browser',
+    '',
+    `version: ${version}`,
+    '',
+    'LLM documentation entry points:',
+    '- /api/docs',
+    '- /api/docs/{docId}?format=markdown',
+    '- /api/docs/llm?format=markdown',
+    '',
+    'Discovery endpoints:',
+    '- /',
+    '- /api',
+  ].join('\n');
 }
 
 export function discoveryRoutes(version: string): Router {
@@ -81,6 +102,10 @@ export function discoveryRoutes(version: string): Router {
       success: true,
       data: buildApiDiscoveryPayload(),
     });
+  });
+
+  router.get('/llms.txt', (_req: Request, res: Response) => {
+    res.type('text/plain').send(buildLlmsTxt(version));
   });
 
   return router;

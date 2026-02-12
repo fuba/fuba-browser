@@ -16,6 +16,7 @@ describe('Discovery Routes', () => {
     expect(response.body.data.version).toBe('2.0.1');
     expect(response.body.data.endpoints.docs.index).toBe('/api/docs');
     expect(response.body.data.endpoints.docs.bundle).toBe('/api/docs/llm');
+    expect(response.body.data.endpoints.llmsTxt).toBe('/llms.txt');
   });
 
   it('returns API discovery at GET /api', async () => {
@@ -29,5 +30,19 @@ describe('Discovery Routes', () => {
     expect(response.body.data.docs.list).toBe('/api/docs');
     expect(response.body.data.docs.single).toBe('/api/docs/{docId}');
     expect(response.body.data.docs.llm).toBe('/api/docs/llm?format=markdown');
+    expect(response.body.data.llmsTxt).toBe('/llms.txt');
+  });
+
+  it('returns llms.txt hints at GET /llms.txt', async () => {
+    const app = express();
+    app.use(discoveryRoutes('2.0.1'));
+
+    const response = await request(app).get('/llms.txt');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('text/plain');
+    expect(response.text).toContain('fuba-browser');
+    expect(response.text).toContain('/api/docs');
+    expect(response.text).toContain('/api/docs/llm?format=markdown');
   });
 });

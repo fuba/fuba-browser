@@ -33,6 +33,7 @@ Returns a service discovery payload with key endpoints and docs hints.
     "endpoints": {
       "health": "/health",
       "api": "/api",
+      "llmsTxt": "/llms.txt",
       "docs": {
         "index": "/api/docs",
         "bundle": "/api/docs/llm",
@@ -48,6 +49,9 @@ Returns a service discovery payload with key endpoints and docs hints.
 
 ### GET /api
 Returns API-level discovery info including docs endpoints and curl examples.
+
+### GET /llms.txt
+Returns plain-text LLM entrypoint hints including `/api/docs` and `/api/docs/llm?format=markdown`.
 
 ## LLM Documentation
 

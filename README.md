@@ -89,7 +89,7 @@ docker-compose up
 
 # Access points:
 # - REST API: http://localhost:39000
-#   - discovery: GET / and GET /api
+#   - discovery: GET /, GET /api, GET /llms.txt
 # - Web VNC (auto-login): http://localhost:39000/web-vnc
 # - Web VNC (manual): http://localhost:39001
 # - VNC: vnc://localhost:5900 (password: fuba-browser)
