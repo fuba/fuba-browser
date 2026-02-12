@@ -18,6 +18,37 @@ Returns the health status of the API server.
 }
 ```
 
+## API Discovery
+
+### GET /
+Returns a service discovery payload with key endpoints and docs hints.
+
+**Response (JSON):**
+```json
+{
+  "success": true,
+  "data": {
+    "name": "fuba-browser",
+    "version": "0.1.0",
+    "endpoints": {
+      "health": "/health",
+      "api": "/api",
+      "docs": {
+        "index": "/api/docs",
+        "bundle": "/api/docs/llm",
+        "single": "/api/docs/{docId}"
+      }
+    },
+    "hints": [
+      "Use GET /api/docs to list available documentation IDs."
+    ]
+  }
+}
+```
+
+### GET /api
+Returns API-level discovery info including docs endpoints and curl examples.
+
 ## LLM Documentation
 
 These endpoints fetch markdown docs from the upstream repository and provide them in a format that is easy for LLM ingestion.  
