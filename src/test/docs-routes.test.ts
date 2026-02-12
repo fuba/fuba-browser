@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import express from 'express';
 import request from 'supertest';
+import { readFileSync } from 'node:fs';
 import { DocsFetcher, docsRoutes } from '../server/routes/docs.js';
 
 interface MockFetchResponse {
@@ -111,5 +112,53 @@ describe('Docs Routes', () => {
     expect(response.status).toBe(502);
     expect(response.body.success).toBe(false);
     expect(response.body.error).toContain('Failed to fetch document');
+  });
+});
+
+describe('Docs Routes default source', () => {
+  let app: express.Express;
+  let fetcher: ReturnType<typeof vi.fn<DocsFetcher>>;
+  const previousDocsBaseUrl = process.env.DOCS_BASE_URL;
+  const previousDocsRef = process.env.DOCS_REF;
+  const previousAppVersion = process.env.APP_VERSION;
+  const packageJson = JSON.parse(
+    readFileSync(new URL('../../package.json', import.meta.url), 'utf-8')
+  ) as { version: string };
+
+  beforeEach(() => {
+    delete process.env.DOCS_BASE_URL;
+    delete process.env.DOCS_REF;
+    delete process.env.APP_VERSION;
+    app = express();
+    app.use(express.json());
+    fetcher = vi.fn<DocsFetcher>().mockResolvedValue(createFetchResponse('# API Doc'));
+    app.use('/api', docsRoutes({ fetcher }));
+  });
+
+  it('uses version tag as default docs ref', async () => {
+    const response = await request(app).get('/api/docs/api');
+
+    expect(response.status).toBe(200);
+    expect(fetcher).toHaveBeenCalledWith(
+      `https://raw.githubusercontent.com/fuba/fuba-browser/v${packageJson.version}/doc/API.md`
+    );
+  });
+
+  afterEach(() => {
+    if (previousDocsBaseUrl === undefined) {
+      delete process.env.DOCS_BASE_URL;
+    } else {
+      process.env.DOCS_BASE_URL = previousDocsBaseUrl;
+    }
+    if (previousDocsRef === undefined) {
+      delete process.env.DOCS_REF;
+    } else {
+      process.env.DOCS_REF = previousDocsRef;
+    }
+    if (previousAppVersion === undefined) {
+      delete process.env.APP_VERSION;
+    } else {
+      process.env.APP_VERSION = previousAppVersion;
+    }
   });
 });

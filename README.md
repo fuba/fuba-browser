@@ -297,7 +297,8 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 | `API_PORT` | `39000` | API server port |
 | `VNC_WEB_PORT` | `39001` | Web VNC (noVNC websockify) port |
 | `VNC_TOKEN_TTL_SECONDS` | `300` | One-time VNC token TTL in seconds |
-| `DOCS_BASE_URL` | `https://raw.githubusercontent.com/fuba/fuba-browser/main` | Base URL for `/api/docs` markdown sources |
+| `DOCS_REF` | `v<APP_VERSION>` | Git ref used by `/api/docs` (e.g. `v2.0.1`, `main`) |
+| `DOCS_BASE_URL` | derived from `DOCS_REF` | Full base URL override for `/api/docs` markdown sources |
 
 Example usage in docker-compose.yml:
 

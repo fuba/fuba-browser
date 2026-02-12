@@ -21,7 +21,7 @@ Returns the health status of the API server.
 ## LLM Documentation
 
 These endpoints fetch markdown docs from the upstream repository and provide them in a format that is easy for LLM ingestion.  
-Default source base URL: `https://raw.githubusercontent.com/fuba/fuba-browser/main` (override with `DOCS_BASE_URL`).
+Default source base URL: `https://raw.githubusercontent.com/fuba/fuba-browser/v<running-version>` (derived from `DOCS_REF` or `APP_VERSION` or runtime `package.json` version). You can override with `DOCS_BASE_URL`.
 
 ### GET /api/docs
 Returns the list of available documents.
@@ -42,7 +42,7 @@ Returns the list of available documents.
         "id": "api",
         "title": "REST API Reference",
         "path": "doc/API.md",
-        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/main/doc/API.md"
+        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v2.0.1/doc/API.md"
       }
     ],
     "bundleEndpoint": "/api/docs/llm"
@@ -67,7 +67,7 @@ Returns one markdown document.
     "id": "api",
     "title": "REST API Reference",
     "path": "doc/API.md",
-    "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/main/doc/API.md",
+    "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v2.0.1/doc/API.md",
     "markdown": "# Fuba Browser API Documentation...",
     "fetchedAt": "2026-02-13T01:20:00.000Z"
   }
@@ -94,7 +94,7 @@ Returns a concatenated markdown bundle for LLM context input.
         "id": "api",
         "title": "REST API Reference",
         "path": "doc/API.md",
-        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/main/doc/API.md"
+        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v2.0.1/doc/API.md"
       }
     ],
     "markdown": "# Fuba Browser Documentation Bundle...",

@@ -1,6 +1,8 @@
 import { Request, Response, Router } from 'express';
+import { readFileSync } from 'node:fs';
 
-const DEFAULT_DOCS_BASE_URL = 'https://raw.githubusercontent.com/fuba/fuba-browser/main';
+const DEFAULT_DOCS_BASE_REPO_URL = 'https://raw.githubusercontent.com/fuba/fuba-browser';
+const DEFAULT_DOCS_REF = 'main';
 
 interface DocumentDefinition {
   id: string;
@@ -44,9 +46,48 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 }
 
+function readRuntimePackageVersion(): string | null {
+  try {
+    const packageJson = JSON.parse(
+      readFileSync(new URL('../../../package.json', import.meta.url), 'utf-8')
+    ) as { version?: string };
+    return packageJson.version?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeVersionRef(version: string): string {
+  return version.startsWith('v') ? version : `v${version}`;
+}
+
+function resolveDefaultDocsRef(): string {
+  const docsRef = process.env.DOCS_REF?.trim();
+  if (docsRef) {
+    return docsRef;
+  }
+
+  const appVersion = process.env.APP_VERSION?.trim();
+  if (appVersion) {
+    return normalizeVersionRef(appVersion);
+  }
+
+  const packageVersion = readRuntimePackageVersion();
+  if (packageVersion) {
+    return normalizeVersionRef(packageVersion);
+  }
+
+  return DEFAULT_DOCS_REF;
+}
+
 function getDocsBaseUrl(baseUrl?: string): string {
-  const resolved = baseUrl || process.env.DOCS_BASE_URL || DEFAULT_DOCS_BASE_URL;
-  return normalizeBaseUrl(resolved);
+  const resolved = baseUrl || process.env.DOCS_BASE_URL;
+  if (resolved) {
+    return normalizeBaseUrl(resolved);
+  }
+
+  const docsRef = resolveDefaultDocsRef();
+  return `${DEFAULT_DOCS_BASE_REPO_URL}/${docsRef}`;
 }
 
 function getQueryStringValue(value: unknown): string | undefined {
