@@ -93,6 +93,7 @@ fbb screenshot output.png
 |---------|-------------|
 | `content` | Get page content (HTML, markdown, elements) |
 | `elements` | Get interactive elements |
+| `docs [docId]` | Get docs index / single doc / LLM bundle |
 
 ### State Check (`is`)
 
@@ -195,6 +196,31 @@ fbb screenshot output.png
 |---------|-------------|
 | `reset` | Reset browser (close and reinitialize) |
 | `vnc` | Generate a one-time noVNC access URL |
+
+### Docs command options
+
+- `-l, --llm` - Return bundled markdown for LLM ingestion (`/api/docs/llm`)
+- `--docs <ids>` - Comma-separated doc IDs (`api,cli,usage` etc.)
+- `-r, --raw` - Output markdown body only
+
+Examples:
+
+```bash
+# List available docs
+fbb docs
+
+# Get one document as JSON
+fbb docs api
+
+# Get one document as raw markdown
+fbb docs api --raw
+
+# Get full LLM bundle
+fbb docs --llm --raw
+
+# Get limited bundle
+fbb docs --llm --docs api,cli --raw
+```
 
 **VNC options:**
 - `--vnc-host <host:port>` - VNC host:port for redirect (e.g., `puma2:39101`)

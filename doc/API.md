@@ -18,6 +18,92 @@ Returns the health status of the API server.
 }
 ```
 
+## LLM Documentation
+
+These endpoints fetch markdown docs from the upstream repository and provide them in a format that is easy for LLM ingestion.  
+Default source base URL: `https://raw.githubusercontent.com/fuba/fuba-browser/main` (override with `DOCS_BASE_URL`).
+
+### GET /api/docs
+Returns the list of available documents.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `docs` | string | No | Comma-separated IDs to filter list (e.g. `api,cli,usage`) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "documents": [
+      {
+        "id": "api",
+        "title": "REST API Reference",
+        "path": "doc/API.md",
+        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/main/doc/API.md"
+      }
+    ],
+    "bundleEndpoint": "/api/docs/llm"
+  }
+}
+```
+
+### GET /api/docs/:docId
+Returns one markdown document.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `format` | string | No | Set `markdown` to receive `text/markdown` directly |
+
+**Response (JSON):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "api",
+    "title": "REST API Reference",
+    "path": "doc/API.md",
+    "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/main/doc/API.md",
+    "markdown": "# Fuba Browser API Documentation...",
+    "fetchedAt": "2026-02-13T01:20:00.000Z"
+  }
+}
+```
+
+### GET /api/docs/llm
+Returns a concatenated markdown bundle for LLM context input.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `docs` | string | No | Comma-separated IDs to include (default: all docs) |
+| `format` | string | No | Set `markdown` to receive `text/markdown` directly |
+
+**Response (JSON):**
+```json
+{
+  "success": true,
+  "data": {
+    "documents": [
+      {
+        "id": "api",
+        "title": "REST API Reference",
+        "path": "doc/API.md",
+        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/main/doc/API.md"
+      }
+    ],
+    "markdown": "# Fuba Browser Documentation Bundle...",
+    "format": "markdown",
+    "fetchedAt": "2026-02-13T01:20:00.000Z"
+  }
+}
+```
+
 ## Web VNC
 
 ### POST /api/web-vnc/token
