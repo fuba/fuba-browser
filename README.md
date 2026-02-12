@@ -321,6 +321,7 @@ The API design and CLI tool were inspired by [vercel-labs/agent-browser](https:/
 
 ## License
 
+
 This project is licensed under the [MIT License](LICENSE).
 
 Third-party components included in the Docker image are distributed under their
