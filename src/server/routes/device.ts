@@ -59,20 +59,29 @@ export function deviceRoutes(
 
   // POST /api/device - Set device profile (triggers browser reset)
   router.post('/device', async (req: Request, res: Response) => {
+    const { profile } = req.body;
+
+    if (profile === undefined) {
+      res.status(400).json({
+        success: false,
+        error: 'Missing "profile" in request body. Use a device name (e.g. "iPhone 15") or "desktop".',
+      });
+      return;
+    }
+
+    // Normalize: null and "desktop" both mean desktop mode
+    const profileName = (profile === null || profile === 'desktop') ? null : String(profile);
+
+    // Validate the profile name first (400 for unknown profiles)
     try {
-      const { profile } = req.body;
+      resolveDeviceProfile(profileName);
+    } catch (error) {
+      res.status(400).json({ success: false, error: (error as Error).message });
+      return;
+    }
 
-      if (profile === undefined) {
-        res.status(400).json({
-          success: false,
-          error: 'Missing "profile" in request body. Use a device name (e.g. "iPhone 15") or "desktop".',
-        });
-        return;
-      }
-
-      // Normalize: null and "desktop" both mean desktop mode
-      const profileName = (profile === null || profile === 'desktop') ? null : String(profile);
-
+    // Apply profile and reset browser (500 for runtime failures)
+    try {
       await setDeviceProfile(profileName);
 
       const info = buildDeviceInfo(profileName);
@@ -82,7 +91,7 @@ export function deviceRoutes(
         message: `Device profile changed to "${info.profile}". Browser has been reset.`,
       });
     } catch (error) {
-      res.status(400).json({ success: false, error: (error as Error).message });
+      res.status(500).json({ success: false, error: (error as Error).message });
     }
   });
 

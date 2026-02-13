@@ -116,8 +116,16 @@ async function resetBrowser(): Promise<void> {
 async function setDeviceProfile(profileName: string | null): Promise<void> {
   // Validate the profile name before resetting
   resolveDeviceProfile(profileName);
+
+  const previousProfile = currentDeviceProfile;
   currentDeviceProfile = profileName;
-  await resetBrowser();
+  try {
+    await resetBrowser();
+  } catch (error) {
+    // Roll back profile state on failure
+    currentDeviceProfile = previousProfile;
+    throw error;
+  }
 }
 
 // Get current device profile name
