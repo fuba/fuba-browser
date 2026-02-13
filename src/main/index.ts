@@ -4,6 +4,7 @@ import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { PageManager } from '../browser/page-manager.js';
 import { getBrowserConfig } from '../config/browser-config.js';
+import { resolveDeviceProfile } from '../config/device-profiles.js';
 import { VncPasswordManager } from '../server/vnc-password-manager.js';
 
 // Use a standard Chrome User-Agent to avoid detection as automation
@@ -16,12 +17,17 @@ let browserController: BrowserController | null = null;
 let snapshotGenerator: SnapshotGenerator | null = null;
 let pageManager: PageManager | null = null;
 let vncPasswordManager: VncPasswordManager | null = null;
+let currentDeviceProfile: string | null = null;
 
 // Initialize browser, context, page, and page manager
 async function initializeBrowser() {
   const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy } = getBrowserConfig();
 
-  console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId}, viewport: ${viewportWidth}x${viewportHeight})...`);
+  // Resolve device profile for context options
+  const deviceOptions = resolveDeviceProfile(currentDeviceProfile);
+  const profileLabel = currentDeviceProfile || 'desktop';
+
+  console.error(`[System] Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (device: ${profileLabel}, locale: ${locale}, timezone: ${timezoneId})...`);
 
   // Build launch options
   const launchOptions: Parameters<typeof chromium.launch>[0] = {
@@ -43,15 +49,24 @@ async function initializeBrowser() {
   // Launch browser
   browser = await chromium.launch(launchOptions);
 
-  // Create browser context with custom user agent, viewport, HiDPI, locale and timezone
-  context = await browser.newContext({
-    userAgent: CHROME_USER_AGENT,
-    viewport: { width: viewportWidth, height: viewportHeight },
-    deviceScaleFactor,
-    ignoreHTTPSErrors: true,
-    locale,
-    timezoneId,
-  });
+  // Create browser context: use device profile if set, otherwise desktop defaults
+  const contextOptions: Parameters<typeof browser.newContext>[0] = deviceOptions
+    ? {
+        ...deviceOptions,
+        ignoreHTTPSErrors: true,
+        locale,
+        timezoneId,
+      }
+    : {
+        userAgent: CHROME_USER_AGENT,
+        viewport: { width: viewportWidth, height: viewportHeight },
+        deviceScaleFactor,
+        ignoreHTTPSErrors: true,
+        locale,
+        timezoneId,
+      };
+
+  context = await browser.newContext(contextOptions);
 
   // Create the main page
   page = await context.newPage();
@@ -97,10 +112,29 @@ async function resetBrowser(): Promise<void> {
   console.error('[System] Browser reset complete');
 }
 
-async function main() {
-  const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight } = getBrowserConfig();
+// Set device profile and reset browser
+async function setDeviceProfile(profileName: string | null): Promise<void> {
+  // Validate the profile name before resetting
+  resolveDeviceProfile(profileName);
+  currentDeviceProfile = profileName;
+  await resetBrowser();
+}
 
-  console.log(`Starting Playwright browser in ${headless ? 'headless' : 'headed'} mode (scale: ${deviceScaleFactor}x, locale: ${locale}, timezone: ${timezoneId}, viewport: ${viewportWidth}x${viewportHeight})...`);
+// Get current device profile name
+function getDeviceProfile(): string | null {
+  return currentDeviceProfile;
+}
+
+async function main() {
+  const config = getBrowserConfig();
+
+  // Set initial device profile from environment variable
+  if (config.deviceProfile) {
+    currentDeviceProfile = config.deviceProfile;
+  }
+
+  const profileLabel = currentDeviceProfile || 'desktop';
+  console.log(`Starting Playwright browser (device: ${profileLabel}, locale: ${config.locale}, timezone: ${config.timezoneId})...`);
 
   // Initialize browser
   await initializeBrowser();
@@ -125,10 +159,12 @@ async function main() {
     console.log(`VNC password manager started (file: ${vncPasswdFile})`);
   }
 
-  // Start API server with reset callback
+  // Start API server with reset and device profile callbacks
   const apiPort = process.env.API_PORT || 39000;
   await startApiServer(Number(apiPort), browserController, snapshotGenerator, {
     resetBrowser,
+    setDeviceProfile,
+    getDeviceProfile,
     vncPasswordManager: vncPasswordManager ?? undefined,
   });
 

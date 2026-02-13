@@ -168,6 +168,26 @@ describe('getBrowserConfig', () => {
     });
   });
 
+  describe('device profile', () => {
+    it('should return undefined when DEVICE_PROFILE is not set', () => {
+      delete process.env.DEVICE_PROFILE;
+      const config = getBrowserConfig();
+      expect(config.deviceProfile).toBeUndefined();
+    });
+
+    it('should use DEVICE_PROFILE when set', () => {
+      process.env.DEVICE_PROFILE = 'iPhone 15';
+      const config = getBrowserConfig();
+      expect(config.deviceProfile).toBe('iPhone 15');
+    });
+
+    it('should return undefined for empty string', () => {
+      process.env.DEVICE_PROFILE = '';
+      const config = getBrowserConfig();
+      expect(config.deviceProfile).toBeUndefined();
+    });
+  });
+
   describe('combined configuration', () => {
     it('should return all settings correctly when all env vars are set', () => {
       process.env.HEADLESS = 'false';
