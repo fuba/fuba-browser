@@ -48,6 +48,12 @@ describe('resolveDeviceProfile', () => {
     expect(() => resolveDeviceProfile('Unknown Device XYZ')).toThrow('Unknown device profile: "Unknown Device XYZ"');
   });
 
+  it('should reject inherited Object.prototype keys', () => {
+    expect(() => resolveDeviceProfile('__proto__')).toThrow('Unknown device profile');
+    expect(() => resolveDeviceProfile('constructor')).toThrow('Unknown device profile');
+    expect(() => resolveDeviceProfile('toString')).toThrow('Unknown device profile');
+  });
+
   it('should not include defaultBrowserType in result', () => {
     const result = resolveDeviceProfile('iPhone 15');
     expect(result).not.toBeNull();

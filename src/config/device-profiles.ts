@@ -20,11 +20,11 @@ export function resolveDeviceProfile(name: string | null): DeviceProfileOptions 
     return null;
   }
 
-  const device = devices[name];
-  if (!device) {
+  if (!Object.hasOwn(devices, name)) {
     throw new Error(`Unknown device profile: "${name}". Use GET /api/device/profiles to list available profiles.`);
   }
 
+  const device = devices[name];
   return {
     viewport: device.viewport,
     userAgent: device.userAgent,
