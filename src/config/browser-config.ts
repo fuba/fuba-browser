@@ -13,6 +13,7 @@ export interface BrowserConfig {
   viewportWidth: number;
   viewportHeight: number;
   proxy?: ProxyConfig;
+  deviceProfile?: string;
 }
 
 export function getBrowserConfig(): BrowserConfig {
@@ -28,5 +29,7 @@ export function getBrowserConfig(): BrowserConfig {
     ? { server: proxyServer, bypass: process.env.PROXY_BYPASS || '' }
     : undefined;
 
-  return { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy };
+  const deviceProfile = process.env.DEVICE_PROFILE || undefined;
+
+  return { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy, deviceProfile };
 }

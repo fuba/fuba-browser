@@ -13,6 +13,7 @@ import { storageRoutes } from './storage.js';
 import { debugRoutes } from './debug.js';
 import { stateRoutes } from './state.js';
 import { systemRoutes } from './system.js';
+import { deviceRoutes } from './device.js';
 import { webVncRoutes } from './web-vnc.js';
 import { docsRoutes } from './docs.js';
 import { ServerOptions } from '../index.js';
@@ -62,6 +63,11 @@ export function setupRoutes(
   // System routes (reset browser, etc.)
   if (options.resetBrowser) {
     app.use('/api', systemRoutes(options.resetBrowser));
+  }
+
+  // Device emulation routes (switch between desktop/mobile profiles)
+  if (options.setDeviceProfile && options.getDeviceProfile) {
+    app.use('/api', deviceRoutes(options.setDeviceProfile, options.getDeviceProfile));
   }
 
   // Web VNC token routes (requires both tokenStore and vncPasswordManager)
