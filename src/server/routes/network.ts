@@ -19,6 +19,7 @@ interface DecodedDataUrl {
 }
 
 class NetworkSaveBadRequestError extends Error {}
+class NetworkResourceNotFoundError extends Error {}
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -126,6 +127,38 @@ async function getAllowedRoots(): Promise<string[]> {
   return allowedRootsPromise;
 }
 
+function normalizeNetworkLookupError(error: unknown): NetworkResourceNotFoundError | null {
+  const message = (error as Error | undefined)?.message;
+  if (!message) {
+    return null;
+  }
+
+  if (
+    message.startsWith('Network request not found:') ||
+    message.startsWith('Response body not available for request:')
+  ) {
+    return new NetworkResourceNotFoundError(message);
+  }
+
+  return null;
+}
+
+function requireStringField(value: unknown, fieldName: string, options: { allowEmpty?: boolean } = {}): string {
+  if (value === undefined || value === null) {
+    throw new NetworkSaveBadRequestError(`${fieldName} is required`);
+  }
+
+  if (typeof value !== 'string') {
+    throw new NetworkSaveBadRequestError(`${fieldName} must be a string`);
+  }
+
+  if (!options.allowEmpty && value.length === 0) {
+    throw new NetworkSaveBadRequestError(`${fieldName} is required`);
+  }
+
+  return value;
+}
+
 export function networkRoutes(browserController: BrowserController): Router {
   const router = Router();
 
@@ -173,21 +206,36 @@ export function networkRoutes(browserController: BrowserController): Router {
       res.set('X-Network-Request-Id', bodyResult.id);
       res.send(bodyResult.body);
     } catch (error) {
+      const notFoundError = normalizeNetworkLookupError(error);
+      if (notFoundError) {
+        res.status(404).json({ success: false, error: notFoundError.message });
+        return;
+      }
       res.status(500).json({ success: false, error: (error as Error).message });
     }
   });
 
   router.post('/network/save', async (req: Request<{}, {}, NetworkSaveRequest>, res: Response<ApiResponse>) => {
     try {
-      const { id, dataUrl, overwrite = false } = req.body || {};
-      const outputPath = req.body?.path;
+      const { id, dataUrl } = req.body || {};
+      const overwrite = req.body?.overwrite;
 
-      if (!outputPath) {
-        return res.status(400).json({ success: false, error: 'path is required' });
+      if (overwrite !== undefined && typeof overwrite !== 'boolean') {
+        throw new NetworkSaveBadRequestError('overwrite must be a boolean');
       }
 
-      if (!id && !dataUrl) {
-        return res.status(400).json({ success: false, error: 'Either id or dataUrl is required' });
+      const outputPath = requireStringField(req.body?.path, 'path');
+
+      if (id !== undefined && typeof id !== 'string') {
+        throw new NetworkSaveBadRequestError('id must be a string');
+      }
+
+      if (dataUrl !== undefined && typeof dataUrl !== 'string') {
+        throw new NetworkSaveBadRequestError('dataUrl must be a string');
+      }
+
+      if (id === undefined && dataUrl === undefined) {
+        throw new NetworkSaveBadRequestError('Either id or dataUrl is required');
       }
 
       const resolvedPath = await resolveSafeOutputPath(outputPath);
@@ -211,7 +259,7 @@ export function networkRoutes(browserController: BrowserController): Router {
 
       await fs.mkdir(path.dirname(resolvedPath), { recursive: true });
       try {
-        await fs.writeFile(resolvedPath, body, { flag: overwrite ? 'w' : 'wx' });
+        await fs.writeFile(resolvedPath, body, { flag: overwrite === true ? 'w' : 'wx' });
       } catch (error) {
         const code = (error as NodeJS.ErrnoException).code;
         if (code === 'EEXIST') {
@@ -232,7 +280,8 @@ export function networkRoutes(browserController: BrowserController): Router {
       });
     } catch (error) {
       const message = (error as Error).message;
-      const status = error instanceof NetworkSaveBadRequestError ? 400 : 500;
+      const notFoundError = normalizeNetworkLookupError(error);
+      const status = notFoundError ? 404 : error instanceof NetworkSaveBadRequestError ? 400 : 500;
       return res.status(status).json({ success: false, error: message });
     }
   });

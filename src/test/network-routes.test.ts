@@ -34,11 +34,16 @@ describe('Network Routes', () => {
         },
       ]),
       clearNetworkRequests: vi.fn().mockReturnValue(1),
-      getNetworkResponseBody: vi.fn().mockResolvedValue({
-        id: 'req-1',
-        url: 'https://example.com/image.png',
-        contentType: 'image/png',
-        body: Buffer.from('PNGDATA'),
+      getNetworkResponseBody: vi.fn().mockImplementation(async (id: string) => {
+        if (id === 'missing') {
+          throw new Error(`Network request not found: ${id}`);
+        }
+        return {
+          id: 'req-1',
+          url: 'https://example.com/image.png',
+          contentType: 'image/png',
+          body: Buffer.from('PNGDATA'),
+        };
       }),
     };
 
@@ -90,6 +95,14 @@ describe('Network Routes', () => {
     expect(response.headers['x-network-url']).toBeUndefined();
   });
 
+  it('GET /api/network/body/:id returns 404 for missing network id', async () => {
+    const response = await request(app).get('/api/network/body/missing');
+
+    expect(response.status).toBe(404);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('Network request not found');
+  });
+
   it('POST /api/network/save saves captured body to file', async () => {
     const outPath = path.join(tempDir, 'saved-image.png');
 
@@ -102,6 +115,18 @@ describe('Network Routes', () => {
     expect(response.body.data.path).toBe(outPath);
     expect(response.body.data.bytes).toBe(7);
     expect(fs.readFileSync(outPath)).toEqual(Buffer.from('PNGDATA'));
+  });
+
+  it('POST /api/network/save returns 404 for missing network id', async () => {
+    const outPath = path.join(tempDir, 'missing-id.bin');
+
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({ id: 'missing', path: outPath });
+
+    expect(response.status).toBe(404);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('Network request not found');
   });
 
   it('POST /api/network/save saves data URL directly without captured request', async () => {
@@ -177,6 +202,45 @@ describe('Network Routes', () => {
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);
     expect(response.body.error).toContain('Output path must be inside');
+  });
+
+  it('POST /api/network/save returns 400 when path is not a string', async () => {
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        dataUrl: `data:text/plain;base64,${Buffer.from('abc').toString('base64')}`,
+        path: {},
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('path must be a string');
+  });
+
+  it('POST /api/network/save returns 400 when id is not a string', async () => {
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        id: {},
+        path: path.join(tempDir, 'bad-id.bin'),
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('id must be a string');
+  });
+
+  it('POST /api/network/save returns 400 when dataUrl is not a string', async () => {
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        dataUrl: {},
+        path: path.join(tempDir, 'bad-data-url.bin'),
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('dataUrl must be a string');
   });
 
   it('POST /api/network/save rejects unsafe output paths even if cwd is root', async () => {
