@@ -120,6 +120,40 @@ describe('Network Routes', () => {
     expect(mockBrowserController.getNetworkResponseBody).not.toHaveBeenCalled();
   });
 
+  it('POST /api/network/save returns 409 when file exists and overwrite is false', async () => {
+    const outPath = path.join(tempDir, 'already-exists.bin');
+    fs.writeFileSync(outPath, Buffer.from('old'));
+
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        dataUrl: `data:text/plain;base64,${Buffer.from('new').toString('base64')}`,
+        path: outPath,
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('File already exists');
+    expect(fs.readFileSync(outPath)).toEqual(Buffer.from('old'));
+  });
+
+  it('POST /api/network/save overwrites file when overwrite is true', async () => {
+    const outPath = path.join(tempDir, 'overwrite.bin');
+    fs.writeFileSync(outPath, Buffer.from('old'));
+
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        dataUrl: `data:text/plain;base64,${Buffer.from('new').toString('base64')}`,
+        path: outPath,
+        overwrite: true,
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(fs.readFileSync(outPath)).toEqual(Buffer.from('new'));
+  });
+
   it('POST /api/network/save rejects unsafe output paths', async () => {
     const response = await request(app)
       .post('/api/network/save')

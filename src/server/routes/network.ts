@@ -202,17 +202,16 @@ export function networkRoutes(browserController: BrowserController): Router {
         sourceId = responseBody.id;
       }
 
-      if (!overwrite) {
-        try {
-          await fs.access(resolvedPath);
-          return res.status(409).json({ success: false, error: `File already exists: ${resolvedPath}` });
-        } catch {
-          // File does not exist, continue.
-        }
-      }
-
       await fs.mkdir(path.dirname(resolvedPath), { recursive: true });
-      await fs.writeFile(resolvedPath, body);
+      try {
+        await fs.writeFile(resolvedPath, body, { flag: overwrite ? 'w' : 'wx' });
+      } catch (error) {
+        const code = (error as NodeJS.ErrnoException).code;
+        if (code === 'EEXIST') {
+          return res.status(409).json({ success: false, error: `File already exists: ${resolvedPath}` });
+        }
+        throw error;
+      }
 
       return res.json({
         success: true,
