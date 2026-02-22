@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { Router, Request, Response } from 'express';
 import { BrowserController } from '../../browser/controller.js';
 import { ApiResponse } from '../../types/browser.js';
@@ -17,14 +18,18 @@ interface DecodedDataUrl {
   body: Buffer;
 }
 
+class NetworkSaveBadRequestError extends Error {}
+
+const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+
 function decodeDataUrl(dataUrl: string): DecodedDataUrl {
   if (!dataUrl.startsWith('data:')) {
-    throw new Error('dataUrl must start with "data:"');
+    throw new NetworkSaveBadRequestError('dataUrl must start with "data:"');
   }
 
   const commaIndex = dataUrl.indexOf(',');
   if (commaIndex < 0) {
-    throw new Error('Invalid data URL: missing comma separator');
+    throw new NetworkSaveBadRequestError('Invalid data URL: missing comma separator');
   }
 
   const metadata = dataUrl.slice(5, commaIndex);
@@ -37,7 +42,11 @@ function decodeDataUrl(dataUrl: string): DecodedDataUrl {
     return { contentType: mediaType, body: Buffer.from(payload, 'base64') };
   }
 
-  return { contentType: mediaType, body: Buffer.from(decodeURIComponent(payload), 'utf-8') };
+  try {
+    return { contentType: mediaType, body: Buffer.from(decodeURIComponent(payload), 'utf-8') };
+  } catch {
+    throw new NetworkSaveBadRequestError('Invalid data URL: malformed percent-encoding');
+  }
 }
 
 function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
@@ -47,13 +56,13 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
 
 function resolveSafeOutputPath(outputPath: string): string {
   const resolved = path.resolve(outputPath);
-  const allowedRoots = [path.resolve(process.cwd()), path.resolve(os.tmpdir())];
+  const allowedRoots = [PROJECT_ROOT, path.resolve(os.tmpdir())];
 
   if (allowedRoots.some((root) => isPathInsideRoot(resolved, root))) {
     return resolved;
   }
 
-  throw new Error(`Output path must be inside ${allowedRoots.join(' or ')}`);
+  throw new NetworkSaveBadRequestError(`Output path must be inside ${allowedRoots.join(' or ')}`);
 }
 
 export function networkRoutes(browserController: BrowserController): Router {
@@ -164,7 +173,7 @@ export function networkRoutes(browserController: BrowserController): Router {
       });
     } catch (error) {
       const message = (error as Error).message;
-      const status = message.includes('Output path must be inside') || message.includes('dataUrl') ? 400 : 500;
+      const status = error instanceof NetworkSaveBadRequestError ? 400 : 500;
       return res.status(status).json({ success: false, error: message });
     }
   });

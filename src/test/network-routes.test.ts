@@ -123,4 +123,36 @@ describe('Network Routes', () => {
     expect(response.body.success).toBe(false);
     expect(response.body.error).toContain('Output path must be inside');
   });
+
+  it('POST /api/network/save rejects unsafe output paths even if cwd is root', async () => {
+    const originalCwd = process.cwd();
+    process.chdir('/');
+
+    try {
+      const response = await request(app)
+        .post('/api/network/save')
+        .send({
+          dataUrl: `data:text/plain;base64,${Buffer.from('blocked').toString('base64')}`,
+          path: '/etc/fuba-should-not-write-2.txt',
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body.success).toBe(false);
+      expect(response.body.error).toContain('Output path must be inside');
+    } finally {
+      process.chdir(originalCwd);
+    }
+  });
+
+  it('POST /api/network/save returns 400 for malformed data URLs', async () => {
+    const outPath = path.join(tempDir, 'invalid-data-url.bin');
+
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({ dataUrl: 'data:text/plain;base64', path: outPath });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('Invalid data URL');
+  });
 });
