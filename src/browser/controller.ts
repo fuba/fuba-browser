@@ -767,9 +767,10 @@ export class BrowserController {
     const mediaType = parts.find((part) => part !== 'base64') || undefined;
 
     if (isBase64) {
+      const decodedPayload = decodeURIComponent(payload);
       return {
         contentType: mediaType,
-        body: Buffer.from(payload, 'base64'),
+        body: Buffer.from(decodedPayload, 'base64'),
       };
     }
 

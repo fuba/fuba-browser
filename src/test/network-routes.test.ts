@@ -120,6 +120,18 @@ describe('Network Routes', () => {
     expect(mockBrowserController.getNetworkResponseBody).not.toHaveBeenCalled();
   });
 
+  it('POST /api/network/save accepts percent-escaped base64 payloads', async () => {
+    const outPath = path.join(tempDir, 'escaped-base64.txt');
+
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({ dataUrl: 'data:text/plain;base64,SGVsbG8%3D', path: outPath });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(fs.readFileSync(outPath, 'utf-8')).toBe('Hello');
+  });
+
   it('POST /api/network/save returns 409 when file exists and overwrite is false', async () => {
     const outPath = path.join(tempDir, 'already-exists.bin');
     fs.writeFileSync(outPath, Buffer.from('old'));
@@ -204,7 +216,7 @@ describe('Network Routes', () => {
 
     const response = await request(app)
       .post('/api/network/save')
-      .send({ dataUrl: 'data:text/plain;base64,%%%', path: outPath });
+      .send({ dataUrl: 'data:text/plain;base64,SGVsbG8*', path: outPath });
 
     expect(response.status).toBe(400);
     expect(response.body.success).toBe(false);

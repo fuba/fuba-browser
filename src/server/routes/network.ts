@@ -41,10 +41,17 @@ function decodeDataUrl(dataUrl: string): DecodedDataUrl {
   const mediaType = parts.find((part) => part !== 'base64') || undefined;
 
   if (isBase64) {
-    if (!BASE64_PATTERN.test(payload)) {
+    let decodedPayload: string;
+    try {
+      decodedPayload = decodeURIComponent(payload);
+    } catch {
+      throw new NetworkSaveBadRequestError('Invalid data URL: malformed percent-encoding');
+    }
+
+    if (!BASE64_PATTERN.test(decodedPayload)) {
       throw new NetworkSaveBadRequestError('Invalid data URL: malformed base64 payload');
     }
-    return { contentType: mediaType, body: Buffer.from(payload, 'base64') };
+    return { contentType: mediaType, body: Buffer.from(decodedPayload, 'base64') };
   }
 
   try {
