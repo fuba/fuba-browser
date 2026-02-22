@@ -22,6 +22,7 @@ class NetworkSaveBadRequestError extends Error {}
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+let allowedRootsPromise: Promise<string[]> | null = null;
 
 function decodeDataUrl(dataUrl: string): DecodedDataUrl {
   if (!dataUrl.startsWith('data:')) {
@@ -60,7 +61,7 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
 
 async function resolveSafeOutputPath(outputPath: string): Promise<string> {
   const resolved = path.resolve(outputPath);
-  const allowedRoots = [PROJECT_ROOT, path.resolve(os.tmpdir())];
+  const allowedRoots = await getAllowedRoots();
   const parentDir = path.dirname(resolved);
 
   let existingDir = parentDir;
@@ -99,6 +100,23 @@ async function resolveSafeOutputPath(outputPath: string): Promise<string> {
   }
 
   return resolved;
+}
+
+async function getAllowedRoots(): Promise<string[]> {
+  if (allowedRootsPromise) {
+    return allowedRootsPromise;
+  }
+
+  const roots = [PROJECT_ROOT, path.resolve(os.tmpdir())];
+  allowedRootsPromise = Promise.all(roots.map(async (root) => {
+    try {
+      return await fs.realpath(root);
+    } catch {
+      return root;
+    }
+  }));
+
+  return allowedRootsPromise;
 }
 
 export function networkRoutes(browserController: BrowserController): Router {
@@ -146,7 +164,6 @@ export function networkRoutes(browserController: BrowserController): Router {
 
       res.set('Content-Type', contentType);
       res.set('X-Network-Request-Id', bodyResult.id);
-      res.set('X-Network-URL', encodeURIComponent(bodyResult.url));
       res.send(bodyResult.body);
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });

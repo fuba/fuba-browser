@@ -81,6 +81,15 @@ describe('Network Routes', () => {
     expect(mockBrowserController.getNetworkResponseBody).toHaveBeenCalledWith('req-1');
   });
 
+  it('GET /api/network/body/:id binary response does not include URL header', async () => {
+    const response = await request(app).get('/api/network/body/req-1');
+
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toContain('image/png');
+    expect(response.headers['x-network-request-id']).toBe('req-1');
+    expect(response.headers['x-network-url']).toBeUndefined();
+  });
+
   it('POST /api/network/save saves captured body to file', async () => {
     const outPath = path.join(tempDir, 'saved-image.png');
 
