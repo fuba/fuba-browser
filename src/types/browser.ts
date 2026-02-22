@@ -118,3 +118,24 @@ export interface BrowserState {
   localStorage: Record<string, string>;
   sessionStorage: Record<string, string>;
 }
+
+export interface NetworkRequestRecord {
+  id: string;
+  url: string;
+  method: string;
+  resourceType: string;
+  timestamp: string;
+  status?: number;
+  statusText?: string;
+  ok?: boolean;
+  contentType?: string;
+  failureText?: string;
+  finishedAt?: string;
+}
+
+export interface NetworkResponseBody {
+  id: string;
+  url: string;
+  contentType?: string;
+  body: Buffer;
+}

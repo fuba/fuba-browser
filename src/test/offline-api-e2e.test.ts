@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Response } from 'superagent';
 import { Snapshot } from '../types/snapshot.js';
@@ -51,6 +54,7 @@ describe.sequential('Offline API E2E', () => {
     await apiPost('/navigate', { url: `${currentHarness.baseUrl}/app` });
     await apiDelete('/console');
     await apiDelete('/errors');
+    await apiDelete('/network');
   });
 
   afterAll(async () => {
@@ -118,6 +122,42 @@ describe.sequential('Offline API E2E', () => {
     expect(screenshotBase64Res.status).toBe(200);
     expect(screenshotBase64Res.body.success).toBe(true);
     expect(screenshotBase64Res.body.screenshot).toMatch(/^data:image\/png;base64,/);
+  });
+
+  it('verifies network inspection and data URL save APIs', async () => {
+    const currentHarness = requireHarness();
+    await apiPost('/navigate', { url: `${currentHarness.baseUrl}/app` });
+
+    const networkRes = await apiGet('/network');
+    expect(networkRes.status).toBe(200);
+    expect(networkRes.body.success).toBe(true);
+    expect(networkRes.body.data.count).toBeGreaterThan(0);
+
+    const entries = networkRes.body.data.entries as Array<{ id: string; url: string }>;
+    const pixelEntry = entries.find((entry) => entry.url.endsWith('/pixel.png'));
+    expect(pixelEntry).toBeTruthy();
+
+    const bodyRes = await apiGet(`/network/body/${pixelEntry!.id}?type=base64`);
+    expect(bodyRes.status).toBe(200);
+    expect(bodyRes.body.success).toBe(true);
+    expect(bodyRes.body.data.contentType).toContain('image/png');
+    expect(bodyRes.body.data.dataUrl).toMatch(/^data:image\/png;base64,/);
+
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fuba-network-e2e-'));
+    const outPath = path.join(tempDir, 'saved-from-data-url.png');
+    try {
+      const saveRes = await apiPost('/network/save', {
+        dataUrl: bodyRes.body.data.dataUrl,
+        path: outPath,
+      });
+      expect(saveRes.status).toBe(200);
+      expect(saveRes.body.success).toBe(true);
+      expect(saveRes.body.data.path).toBe(outPath);
+      expect(fs.existsSync(outPath)).toBe(true);
+      expect(fs.readFileSync(outPath).byteLength).toBeGreaterThan(0);
+    } finally {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 
   it('verifies getter and wait APIs', async () => {
