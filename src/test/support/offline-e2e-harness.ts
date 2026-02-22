@@ -27,6 +27,7 @@ export interface OfflineE2EHarness {
 }
 
 const PNG_PIXEL_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const BODY_PARSER_LIMIT = '20mb';
 
 function renderFixtureHtml(): string {
   return `<!doctype html>
@@ -235,8 +236,8 @@ export async function createOfflineE2EHarness(): Promise<OfflineE2EHarness> {
   };
 
   const app = express();
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: BODY_PARSER_LIMIT }));
+  app.use(express.urlencoded({ extended: true, limit: BODY_PARSER_LIMIT }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', version: '0.1.0' });

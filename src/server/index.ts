@@ -11,6 +11,7 @@ import { VncPasswordManager } from './vnc-password-manager.js';
 import { discoveryRoutes } from './routes/discovery.js';
 
 const DEFAULT_VNC_WEB_PORT = 39001;
+const DEFAULT_BODY_PARSER_LIMIT = '20mb';
 
 function normalizeHeader(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -62,11 +63,12 @@ export async function startApiServer(
 ): Promise<Express> {
   const app = express();
   const vncWebPort = resolveVncWebPort(process.env.VNC_WEB_PORT);
+  const bodyParserLimit = process.env.API_BODY_LIMIT || DEFAULT_BODY_PARSER_LIMIT;
 
   // Middleware
   app.use(cors());
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: bodyParserLimit }));
+  app.use(express.urlencoded({ extended: true, limit: bodyParserLimit }));
 
   app.use(discoveryRoutes('0.1.0'));
 
