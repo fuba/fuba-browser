@@ -21,6 +21,7 @@ interface DecodedDataUrl {
 class NetworkSaveBadRequestError extends Error {}
 
 const PROJECT_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 
 function decodeDataUrl(dataUrl: string): DecodedDataUrl {
   if (!dataUrl.startsWith('data:')) {
@@ -39,6 +40,9 @@ function decodeDataUrl(dataUrl: string): DecodedDataUrl {
   const mediaType = parts.find((part) => part !== 'base64') || undefined;
 
   if (isBase64) {
+    if (!BASE64_PATTERN.test(payload)) {
+      throw new NetworkSaveBadRequestError('Invalid data URL: malformed base64 payload');
+    }
     return { contentType: mediaType, body: Buffer.from(payload, 'base64') };
   }
 
@@ -54,15 +58,47 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
   return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
 }
 
-function resolveSafeOutputPath(outputPath: string): string {
+async function resolveSafeOutputPath(outputPath: string): Promise<string> {
   const resolved = path.resolve(outputPath);
   const allowedRoots = [PROJECT_ROOT, path.resolve(os.tmpdir())];
+  const parentDir = path.dirname(resolved);
 
-  if (allowedRoots.some((root) => isPathInsideRoot(resolved, root))) {
-    return resolved;
+  let existingDir = parentDir;
+  let resolvedParentDir: string | null = null;
+  while (!resolvedParentDir) {
+    try {
+      resolvedParentDir = await fs.realpath(existingDir);
+      break;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT') {
+        throw error;
+      }
+      const nextDir = path.dirname(existingDir);
+      if (nextDir === existingDir) {
+        throw new NetworkSaveBadRequestError(`Parent directory does not exist: ${parentDir}`);
+      }
+      existingDir = nextDir;
+    }
   }
 
-  throw new NetworkSaveBadRequestError(`Output path must be inside ${allowedRoots.join(' or ')}`);
+  if (!allowedRoots.some((root) => isPathInsideRoot(resolvedParentDir, root))) {
+    throw new NetworkSaveBadRequestError(`Output path must be inside ${allowedRoots.join(' or ')}`);
+  }
+
+  try {
+    const stat = await fs.lstat(resolved);
+    if (stat.isSymbolicLink()) {
+      throw new NetworkSaveBadRequestError(`Refusing to write through symlink: ${resolved}`);
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code !== 'ENOENT') {
+      throw error;
+    }
+  }
+
+  return resolved;
 }
 
 export function networkRoutes(browserController: BrowserController): Router {
@@ -130,7 +166,7 @@ export function networkRoutes(browserController: BrowserController): Router {
         return res.status(400).json({ success: false, error: 'Either id or dataUrl is required' });
       }
 
-      const resolvedPath = resolveSafeOutputPath(outputPath);
+      const resolvedPath = await resolveSafeOutputPath(outputPath);
       let body: Buffer;
       let contentType: string | undefined;
       let sourceUrl: string | undefined;

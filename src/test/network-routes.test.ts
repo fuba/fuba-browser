@@ -155,4 +155,33 @@ describe('Network Routes', () => {
     expect(response.body.success).toBe(false);
     expect(response.body.error).toContain('Invalid data URL');
   });
+
+  it('POST /api/network/save returns 400 for invalid base64 payloads', async () => {
+    const outPath = path.join(tempDir, 'invalid-base64.bin');
+
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({ dataUrl: 'data:text/plain;base64,%%%', path: outPath });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('malformed base64');
+  });
+
+  it('POST /api/network/save rejects symlink output path', async () => {
+    const symlinkPath = path.join(tempDir, 'unsafe-link.bin');
+    fs.symlinkSync('/home/ec/fuba-network-save-target', symlinkPath);
+
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        dataUrl: `data:text/plain;base64,${Buffer.from('blocked').toString('base64')}`,
+        path: symlinkPath,
+        overwrite: true,
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('symlink');
+  });
 });
