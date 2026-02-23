@@ -62,7 +62,6 @@ docker run -d \
   --name fuba-browser \
   -p 39000:39000 \
   -p 39001:6080 \
-  -p 5900:5900 \
   --shm-size=2g \
   ghcr.io/fuba/fuba-browser:1.0.0
 ```
@@ -93,7 +92,7 @@ docker-compose up
 #   - discovery: GET /, GET /api, GET /llms.txt
 # - Web VNC (auto-login): see "Web VNC Access" section below
 # - Web VNC (manual): http://localhost:39001/vnc.html
-# - VNC: vnc://localhost:5900
+# - Raw VNC (5900) is not exposed by default
 ```
 
 ### Launcher Script Commands
@@ -113,6 +112,26 @@ fuba-browser start -n browser2 -p 39100 -w 39101
 # With VNC port exposed
 fuba-browser start -v 5900
 ```
+
+## Security / Threat Model
+
+Fuba Browser is designed as a **personal / operator-controlled automation tool** for LLM agents and local workflows.
+It exposes powerful browser-control APIs on purpose, including:
+
+- reading cookies / storage / page state
+- executing arbitrary page-context JavaScript via `/api/eval`
+- issuing one-time noVNC access tokens
+
+This is **not** intended to be safely internet-exposed as-is.
+
+Recommended operating assumptions:
+
+- run on trusted machines / trusted networks
+- avoid publishing the API directly to the public internet
+- treat `/api/eval` input as trusted code only
+- enable CORS only for explicitly trusted web origins
+
+If you deploy it in shared or untrusted environments, add your own network controls and authentication in front of the API.
 
 ### Install CLI
 
@@ -351,7 +370,8 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `API_PORT` | `39000` | API server port |
-| `API_BODY_LIMIT` | `20mb` | Request body size limit for JSON/form endpoints (useful for large `data:` URLs in `/api/network/save`) |
+| `API_BODY_LIMIT` | `20mb` | Request body size limit for JSON/form endpoints |
+| `API_CORS_ORIGINS` | (disabled) | Comma-separated CORS allowlist (e.g. `http://localhost:3000,https://example.com`). Set `*` only if you intentionally want wildcard CORS. |
 | `VNC_WEB_PORT` | `39001` | Port used in noVNC redirect URLs. Must match the host port mapped to container's 6080 (i.e., `-p <VNC_WEB_PORT>:6080`) |
 | `VNC_TOKEN_TTL_SECONDS` | `300` | One-time VNC token TTL in seconds |
 | `DOCS_REF` | `v<APP_VERSION>` | Git ref used by `/api/docs` (e.g. `v2.0.1`, `main`) |

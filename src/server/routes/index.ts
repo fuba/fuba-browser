@@ -11,6 +11,7 @@ import { getterRoutes } from './getter.js';
 import { inputRoutes } from './input.js';
 import { storageRoutes } from './storage.js';
 import { debugRoutes } from './debug.js';
+import { evalRoutes } from './eval.js';
 import { networkRoutes } from './network.js';
 import { stateRoutes } from './state.js';
 import { systemRoutes } from './system.js';
@@ -52,7 +53,10 @@ export function setupRoutes(
   // Storage routes (localStorage, sessionStorage)
   app.use('/api', storageRoutes(browserController));
 
-  // Debug routes (console, errors, eval)
+  // Page script evaluation route (dangerous by design)
+  app.use('/api', evalRoutes(browserController));
+
+  // Debug routes (console, errors, highlight)
   app.use('/api', debugRoutes(browserController));
 
   // Network inspection routes (request log, response body export)
