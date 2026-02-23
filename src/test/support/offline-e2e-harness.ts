@@ -26,6 +26,9 @@ export interface OfflineE2EHarness {
   close: () => Promise<void>;
 }
 
+const PNG_PIXEL_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+const BODY_PARSER_LIMIT = '20mb';
+
 function renderFixtureHtml(): string {
   return `<!doctype html>
 <html lang="en">
@@ -56,6 +59,8 @@ function renderFixtureHtml(): string {
       <div id="hover-target" role="button" tabindex="0">Hover Area</div>
       <div id="focus-target" tabindex="0">Focus Area</div>
       <a id="next-link" href="/next">Go Next</a>
+      <img id="http-image" src="/pixel.png" alt="HTTP Pixel" />
+      <img id="data-image" src="data:image/png;base64,${PNG_PIXEL_BASE64}" alt="Data Pixel" />
       <div id="hidden-target">Hidden</div>
       <div id="click-count">0</div>
       <div id="dbl-count">0</div>
@@ -110,6 +115,12 @@ function sendHtml(res: ServerResponse<IncomingMessage>, html: string): void {
   res.end(html);
 }
 
+function sendPng(res: ServerResponse<IncomingMessage>): void {
+  res.statusCode = 200;
+  res.setHeader('Content-Type', 'image/png');
+  res.end(Buffer.from(PNG_PIXEL_BASE64, 'base64'));
+}
+
 async function startFixtureServer(): Promise<FixtureServer> {
   const server = http.createServer((req, res) => {
     const url = new URL(req.url || '/', 'http://127.0.0.1');
@@ -121,6 +132,11 @@ async function startFixtureServer(): Promise<FixtureServer> {
 
     if (url.pathname === '/next') {
       sendHtml(res, renderNextPageHtml());
+      return;
+    }
+
+    if (url.pathname === '/pixel.png') {
+      sendPng(res);
       return;
     }
 
@@ -220,8 +236,8 @@ export async function createOfflineE2EHarness(): Promise<OfflineE2EHarness> {
   };
 
   const app = express();
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+  app.use(express.json({ limit: BODY_PARSER_LIMIT }));
+  app.use(express.urlencoded({ extended: true, limit: BODY_PARSER_LIMIT }));
 
   app.get('/health', (_req, res) => {
     res.json({ status: 'ok', version: '0.1.0' });

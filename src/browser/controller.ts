@@ -1,5 +1,14 @@
-import { Page, BrowserContext, Cookie } from 'playwright';
-import { ElementInfo, PageContent, PdfExportOptions, PdfExportResult, BrowserState, BrowserCookie } from '../types/browser.js';
+import { Page, BrowserContext, Cookie, Request as PlaywrightRequest, Response as PlaywrightResponse } from 'playwright';
+import {
+  ElementInfo,
+  PageContent,
+  PdfExportOptions,
+  PdfExportResult,
+  BrowserState,
+  BrowserCookie,
+  NetworkRequestRecord,
+  NetworkResponseBody,
+} from '../types/browser.js';
 import { convertToMarkdown } from '../utils/markdown.js';
 
 type RestorableBrowserCookie = BrowserCookie & {
@@ -7,20 +16,81 @@ type RestorableBrowserCookie = BrowserCookie & {
 };
 
 export class BrowserController {
+  private static readonly MAX_NETWORK_REQUESTS = 500;
   private page: Page;
   private context: BrowserContext;
+  private networkRequests: NetworkRequestRecord[] = [];
+  private networkRequestById = new Map<string, NetworkRequestRecord>();
+  private networkResponseById = new Map<string, PlaywrightResponse>();
+  private requestToEntryId = new WeakMap<PlaywrightRequest, string>();
+  private networkSequence = 0;
+  private networkListeners?: {
+    request: (request: PlaywrightRequest) => void;
+    response: (response: PlaywrightResponse) => void;
+    requestfailed: (request: PlaywrightRequest) => void;
+  };
 
   constructor(page: Page, context: BrowserContext) {
     this.page = page;
     this.context = context;
+    this.attachNetworkListeners();
   }
 
   /**
    * Update the page and context references (used after browser reset).
    */
   setPageAndContext(page: Page, context: BrowserContext): void {
+    this.detachNetworkListeners();
     this.page = page;
     this.context = context;
+    this.clearNetworkRequests();
+    this.attachNetworkListeners();
+  }
+
+  getNetworkRequests(limit?: number): NetworkRequestRecord[] {
+    if (limit !== undefined && Number.isFinite(limit) && limit > 0) {
+      return this.networkRequests.slice(-Math.floor(limit));
+    }
+    return [...this.networkRequests];
+  }
+
+  clearNetworkRequests(): number {
+    const cleared = this.networkRequests.length;
+    this.networkRequests = [];
+    this.networkRequestById.clear();
+    this.networkResponseById.clear();
+    return cleared;
+  }
+
+  async getNetworkResponseBody(id: string): Promise<NetworkResponseBody> {
+    const entry = this.networkRequestById.get(id);
+    if (!entry) {
+      throw new Error(`Network request not found: ${id}`);
+    }
+
+    if (entry.url.startsWith('data:')) {
+      const decoded = this.decodeDataUrl(entry.url);
+      return {
+        id,
+        url: entry.url,
+        contentType: decoded.contentType,
+        body: decoded.body,
+      };
+    }
+
+    const response = this.networkResponseById.get(id);
+    if (!response) {
+      throw new Error(`Response body not available for request: ${id}`);
+    }
+
+    const body = await response.body();
+    const contentType = entry.contentType || response.headers()['content-type'];
+    return {
+      id,
+      url: entry.url,
+      contentType,
+      body,
+    };
   }
 
   async navigate(url: string): Promise<void> {
@@ -591,5 +661,122 @@ export class BrowserController {
         console.warn(`Failed to set sessionStorage item ${key}:`, (e as Error).message);
       }
     }
+  }
+
+  private attachNetworkListeners(): void {
+    const onRequest = (request: PlaywrightRequest): void => {
+      const id = `req-${++this.networkSequence}`;
+      const entry: NetworkRequestRecord = {
+        id,
+        url: request.url(),
+        method: request.method(),
+        resourceType: request.resourceType(),
+        timestamp: new Date().toISOString(),
+      };
+
+      this.requestToEntryId.set(request, id);
+      this.networkRequests.push(entry);
+      this.networkRequestById.set(id, entry);
+      this.trimNetworkRequests();
+    };
+
+    const onResponse = (response: PlaywrightResponse): void => {
+      const request = response.request();
+      const entryId = this.requestToEntryId.get(request);
+      if (!entryId) {
+        return;
+      }
+
+      const entry = this.networkRequestById.get(entryId);
+      if (!entry) {
+        return;
+      }
+
+      entry.status = response.status();
+      entry.statusText = response.statusText();
+      entry.ok = response.ok();
+      entry.finishedAt = new Date().toISOString();
+      const headers = response.headers();
+      entry.contentType = headers['content-type'];
+
+      this.networkResponseById.set(entryId, response);
+    };
+
+    const onRequestFailed = (request: PlaywrightRequest): void => {
+      const entryId = this.requestToEntryId.get(request);
+      if (!entryId) {
+        return;
+      }
+
+      const entry = this.networkRequestById.get(entryId);
+      if (!entry) {
+        return;
+      }
+
+      entry.failureText = request.failure()?.errorText || 'Request failed';
+      entry.finishedAt = new Date().toISOString();
+    };
+
+    this.networkListeners = {
+      request: onRequest,
+      response: onResponse,
+      requestfailed: onRequestFailed,
+    };
+
+    this.page.on('request', onRequest);
+    this.page.on('response', onResponse);
+    this.page.on('requestfailed', onRequestFailed);
+  }
+
+  private detachNetworkListeners(): void {
+    if (!this.networkListeners) {
+      return;
+    }
+
+    this.page.off('request', this.networkListeners.request);
+    this.page.off('response', this.networkListeners.response);
+    this.page.off('requestfailed', this.networkListeners.requestfailed);
+    this.networkListeners = undefined;
+  }
+
+  private trimNetworkRequests(): void {
+    while (this.networkRequests.length > BrowserController.MAX_NETWORK_REQUESTS) {
+      const oldest = this.networkRequests.shift();
+      if (!oldest) {
+        return;
+      }
+      this.networkRequestById.delete(oldest.id);
+      this.networkResponseById.delete(oldest.id);
+    }
+  }
+
+  private decodeDataUrl(dataUrl: string): { contentType?: string; body: Buffer } {
+    if (!dataUrl.startsWith('data:')) {
+      throw new Error('Not a data URL');
+    }
+
+    const commaIndex = dataUrl.indexOf(',');
+    if (commaIndex < 0) {
+      throw new Error('Invalid data URL: missing comma separator');
+    }
+
+    const metadata = dataUrl.slice(5, commaIndex);
+    const payload = dataUrl.slice(commaIndex + 1);
+    const parts = metadata.split(';').filter(Boolean);
+    const isBase64 = parts.includes('base64');
+    const mediaType = parts.find((part) => part !== 'base64') || undefined;
+
+    if (isBase64) {
+      const decodedPayload = decodeURIComponent(payload);
+      return {
+        contentType: mediaType,
+        body: Buffer.from(decodedPayload, 'base64'),
+      };
+    }
+
+    return {
+      contentType: mediaType,
+      body: Buffer.from(decodeURIComponent(payload), 'utf-8'),
+    };
   }
 }

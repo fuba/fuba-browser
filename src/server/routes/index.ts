@@ -11,6 +11,7 @@ import { getterRoutes } from './getter.js';
 import { inputRoutes } from './input.js';
 import { storageRoutes } from './storage.js';
 import { debugRoutes } from './debug.js';
+import { networkRoutes } from './network.js';
 import { stateRoutes } from './state.js';
 import { systemRoutes } from './system.js';
 import { deviceRoutes } from './device.js';
@@ -53,6 +54,9 @@ export function setupRoutes(
 
   // Debug routes (console, errors, eval)
   app.use('/api', debugRoutes(browserController));
+
+  // Network inspection routes (request log, response body export)
+  app.use('/api', networkRoutes(browserController));
 
   // State routes (save/load authentication state)
   app.use('/api', stateRoutes(browserController));
