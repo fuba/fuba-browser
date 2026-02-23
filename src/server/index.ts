@@ -1,5 +1,5 @@
 import express, { Express, Request, Response } from 'express';
-import cors from 'cors';
+import cors, { CorsOptions } from 'cors';
 import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { setupRoutes } from './routes/index.js';
@@ -23,6 +23,41 @@ function resolveVncWebPort(value: string | undefined): number {
   }
   const port = Number.parseInt(value, 10);
   return Number.isFinite(port) && port > 0 ? port : DEFAULT_VNC_WEB_PORT;
+}
+
+export function parseCorsOrigins(value: string | undefined): string[] | '*' | null {
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    return null;
+  }
+
+  if (normalized === '*') {
+    return '*';
+  }
+
+  const origins = normalized
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter((origin) => origin.length > 0);
+
+  return origins.length > 0 ? origins : null;
+}
+
+export function resolveCorsOptions(value: string | undefined): CorsOptions | null {
+  const origins = parseCorsOrigins(value);
+  if (!origins) {
+    return null;
+  }
+
+  if (origins === '*') {
+    return {};
+  }
+
+  return { origin: origins };
 }
 
 export function buildWebVncRedirectUrl(req: Request, vncWebPort: number, vncPassword: string, vncHost?: string): string {
@@ -66,7 +101,10 @@ export async function startApiServer(
   const bodyParserLimit = process.env.API_BODY_LIMIT || DEFAULT_BODY_PARSER_LIMIT;
 
   // Middleware
-  app.use(cors());
+  const corsOptions = resolveCorsOptions(process.env.API_CORS_ORIGINS);
+  if (corsOptions) {
+    app.use(cors(corsOptions));
+  }
   app.use(express.json({ limit: bodyParserLimit }));
   app.use(express.urlencoded({ extended: true, limit: bodyParserLimit }));
 

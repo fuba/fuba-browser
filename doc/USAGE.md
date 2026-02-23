@@ -115,7 +115,6 @@ docker run -d \
   --name fuba-browser \
   -p 39000:39000 \
   -p 39001:6080 \
-  -p 5900:5900 \
   --shm-size=2g \
   ghcr.io/fuba/fuba-browser:1.0.0
 ```
@@ -134,8 +133,8 @@ docker-compose up
 Access points:
 - REST API: `http://localhost:39000`
 - Web VNC (token-based): Issue a token via `POST /api/web-vnc/token`, then open `http://localhost:39000/web-vnc?token=...`
-- Web VNC (manual): `http://localhost:39001` (password: fuba-browser)
-- VNC: `vnc://localhost:5900` (password: fuba-browser)
+- Web VNC (manual): `http://localhost:39001` (use a dynamic password issued via API)
+- Raw VNC (`5900`) is not exposed by default; use `fuba-browser start -v 5900` if you intentionally need it
 
 ## CLI Tool (`fbb`)
 
