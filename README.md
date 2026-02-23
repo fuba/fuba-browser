@@ -389,6 +389,28 @@ services:
       - VIEWPORT_HEIGHT=1080
 ```
 
+## Claude Code Integration
+
+fuba-browser provides a [Claude Code](https://claude.com/claude-code) skill for quick setup.
+
+### Using the skill in this repo
+
+Clone the repo and run `/fuba-recorder-setup` in Claude Code. It will detect or start the container, issue a VNC URL, and show API/CLI usage.
+
+### Installing the skill in your own project
+
+Copy or symlink the skill into your project's `.claude/skills/`:
+
+```bash
+# Symlink (if fuba-browser repo is local)
+ln -s /path/to/fuba-browser/skills/fuba-recorder-setup .claude/skills/fuba-recorder-setup
+
+# Or copy
+cp -r /path/to/fuba-browser/skills/fuba-recorder-setup .claude/skills/
+```
+
+Then run `/fuba-recorder-setup` in Claude Code from your project.
+
 ## Documentation
 
 - [CLI Reference](cli/README.md)

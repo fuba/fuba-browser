@@ -11,7 +11,7 @@ Docker-based browser automation tool with REST API for LLM agents.
 
 ## Getting Started
 
-Run `/quickstart` to set up fuba-browser and get a VNC URL.
+Run `/fuba-recorder-setup` to set up fuba-browser and get a VNC URL.
 
 ## Key Conventions
 
