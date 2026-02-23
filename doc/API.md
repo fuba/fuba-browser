@@ -1027,6 +1027,144 @@ Highlight an element visually.
 
 ---
 
+## Network API
+
+Inspect recent network requests and export response bodies (including `data:` URLs).
+
+### GET /api/network
+Returns the in-memory network request log for the current browser session.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "entries": [
+      {
+        "id": "req-1",
+        "url": "https://example.com/pixel.png",
+        "method": "GET",
+        "resourceType": "image",
+        "timestamp": "2026-02-23T05:00:00.000Z",
+        "status": 200,
+        "statusText": "OK",
+        "ok": true,
+        "contentType": "image/png",
+        "finishedAt": "2026-02-23T05:00:00.120Z"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+### DELETE /api/network
+Clear the in-memory network request log and cached response handles.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "cleared": 12
+  }
+}
+```
+
+### GET /api/network/body/:id
+Returns the response body for a captured request ID.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `type` | string | No | `binary` (default) for raw bytes, or `base64` for JSON metadata + base64/data URL |
+
+**Response (`type=base64`):**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "req-1",
+    "url": "https://example.com/pixel.png",
+    "contentType": "image/png",
+    "size": 68,
+    "base64": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB...",
+    "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB..."
+  }
+}
+```
+
+**Response (`type=binary`):**
+- Raw response body bytes with `Content-Type` set to the captured response content type
+- Includes header `X-Network-Request-Id: <id>`
+
+**Errors:**
+- `404` if the request ID is unknown or the response body is no longer available
+
+### POST /api/network/save
+Save a captured response body (`id`) or a provided `data:` URL (`dataUrl`) to a file.
+
+**Request Body:**
+```json
+{
+  "id": "req-1",
+  "path": "/tmp/pixel.png",
+  "overwrite": false
+}
+```
+
+Alternative (`data:` URL direct save):
+```json
+{
+  "dataUrl": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAAB...",
+  "path": "/tmp/pixel.png"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `path` | string | Yes | Output file path (must be under the project directory or system temp dir such as `/tmp`) |
+| `id` | string | Conditionally | Captured network request ID to save |
+| `dataUrl` | string | Conditionally | `data:` URL to decode and save directly |
+| `overwrite` | boolean | No | Set `true` to overwrite an existing file (default: `false`) |
+
+Notes:
+- Provide either `id` or `dataUrl` (at least one is required)
+- `data:` URLs support both percent-encoded text payloads and base64 payloads
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "path": "/tmp/pixel.png",
+    "bytes": 68,
+    "contentType": "image/png",
+    "id": "req-1",
+    "url": "https://example.com/pixel.png"
+  }
+}
+```
+
+**Errors:**
+- `400` invalid request body / malformed `data:` URL / disallowed output path
+- `404` unknown network request ID
+- `409` file already exists when `overwrite` is `false`
+
+**curl examples:**
+```bash
+# Save a captured response by request ID
+curl -X POST -H 'Content-Type: application/json' \
+  -d '{"id":"req-1","path":"/tmp/pixel.png"}' \
+  http://localhost:39000/api/network/save
+
+# Fetch as JSON base64/data URL
+curl "http://localhost:39000/api/network/body/req-1?type=base64"
+```
+
+---
+
 ## State Management API
 
 Save and load browser authentication state (cookies, localStorage, sessionStorage).

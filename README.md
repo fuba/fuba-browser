@@ -18,6 +18,7 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 - **Storage management** - localStorage, sessionStorage access
 - **Authentication state** - Save/load browser state (cookies, storage)
 - **Debug tools** - Console logs, errors, JavaScript eval, element highlight
+- **Network inspection/export API** - Request log, response body fetch, and file save (`/api/network*`)
 - **Web VNC** for remote GUI access
 - **Docker-based deployment** with X11 support
 - **Japanese font support** (Noto Sans CJK & Noto Serif CJK)
@@ -296,6 +297,7 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `API_PORT` | `39000` | API server port |
+| `API_BODY_LIMIT` | `20mb` | Request body size limit for JSON/form endpoints (useful for large `data:` URLs in `/api/network/save`) |
 | `VNC_WEB_PORT` | `39001` | Web VNC (noVNC websockify) port |
 | `VNC_TOKEN_TTL_SECONDS` | `300` | One-time VNC token TTL in seconds |
 | `DOCS_REF` | `v<APP_VERSION>` | Git ref used by `/api/docs` (e.g. `v2.0.1`, `main`) |
