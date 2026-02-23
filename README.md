@@ -91,9 +91,9 @@ docker-compose up
 # Access points:
 # - REST API: http://localhost:39000
 #   - discovery: GET /, GET /api, GET /llms.txt
-# - Web VNC (auto-login): http://localhost:39000/web-vnc
-# - Web VNC (manual): http://localhost:39001
-# - VNC: vnc://localhost:5900 (password: fuba-browser)
+# - Web VNC (auto-login): see "Web VNC Access" section below
+# - Web VNC (manual): http://localhost:39001/vnc.html
+# - VNC: vnc://localhost:5900
 ```
 
 ### Launcher Script Commands
@@ -243,6 +243,60 @@ fbb vnc                 # Generate a one-time noVNC access URL
 fbb vnc --vnc-host <host:port>  # Specify VNC host for redirect
 ```
 
+## Web VNC Access
+
+Fuba Browser provides token-based Web VNC access via noVNC. Each token is one-time use and carries a unique VNC password that expires automatically.
+
+### Port Architecture
+
+| Port | Location | Service |
+|------|----------|---------|
+| 39000 | Host / Container | API server (Express) |
+| 6080 | Container only | noVNC (websockify) |
+| 39001 | Host only | Mapped to container's 6080 via `-p 39001:6080` |
+| 5900 | Container only | x11vnc (raw VNC) |
+
+> **Note**: noVNC listens on port **6080 inside the container**. The host port `39001` is the Docker port mapping. When running `docker run`, you must map host port to container port 6080: `-p 39001:6080`. The `VNC_WEB_PORT` environment variable controls only the port used in redirect URLs (default: 39001), not the container's listen port.
+
+### Access Flow
+
+```bash
+# 1. Start the container
+docker run -d --name fuba-browser \
+  -p 39000:39000 \
+  -p 39001:6080 \
+  --shm-size=2g \
+  ghcr.io/fuba/fuba-browser:latest
+
+# 2. Issue a one-time token
+TOKEN=$(curl -s -X POST http://localhost:39000/api/web-vnc/token | jq -r '.data.token')
+#   Response: {"success":true,"data":{"token":"abc123...","expiresAt":"..."}}
+#   Note: Token is in .data.token (nested), not .token
+
+# 3. Open in browser - auto-redirects to noVNC with auto-connect
+open "http://localhost:39000/web-vnc?token=${TOKEN}"
+#   → 302 redirect to http://localhost:39001/vnc.html#password=...&autoconnect=1
+```
+
+### With External Host Access
+
+When accessing from a different machine, specify `vncHost` so the redirect points to the correct host:
+
+```bash
+TOKEN=$(curl -s -X POST -H 'Content-Type: application/json' \
+  -d '{"vncHost":"myserver:39001"}' \
+  http://myserver:39000/api/web-vnc/token | jq -r '.data.token')
+
+open "http://myserver:39000/web-vnc?token=${TOKEN}"
+```
+
+### Using CLI
+
+```bash
+fbb vnc                              # Local access
+fbb vnc --vnc-host myserver:39001    # Remote access
+```
+
 ## Architecture
 
 - **Container**: Docker with X11/Xvfb
@@ -272,7 +326,7 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `HEADLESS` | `true` | Set to `false` for headed mode (Docker default is `false`) |
-| `DEVICE_SCALE_FACTOR` | `2` | Device scale factor for HiDPI |
+| `DEVICE_SCALE_FACTOR` | `2` | Device scale factor for HiDPI (see note below) |
 | `LOCALE` | `ja-JP` | Browser locale (e.g., `en-US`, `ja-JP`, `ko-KR`) |
 | `TIMEZONE_ID` | `Asia/Tokyo` | Timezone ID (e.g., `America/New_York`, `Europe/London`) |
 | `VIEWPORT_WIDTH` | `1200` | Playwright viewport width |
@@ -298,10 +352,28 @@ These settings can be adjusted in `docker-compose.yml` based on your system reso
 |----------|---------|-------------|
 | `API_PORT` | `39000` | API server port |
 | `API_BODY_LIMIT` | `20mb` | Request body size limit for JSON/form endpoints (useful for large `data:` URLs in `/api/network/save`) |
-| `VNC_WEB_PORT` | `39001` | Web VNC (noVNC websockify) port |
+| `VNC_WEB_PORT` | `39001` | Port used in noVNC redirect URLs. Must match the host port mapped to container's 6080 (i.e., `-p <VNC_WEB_PORT>:6080`) |
 | `VNC_TOKEN_TTL_SECONDS` | `300` | One-time VNC token TTL in seconds |
 | `DOCS_REF` | `v<APP_VERSION>` | Git ref used by `/api/docs` (e.g. `v2.0.1`, `main`) |
 | `DOCS_BASE_URL` | derived from `DOCS_REF` | Full base URL override for `/api/docs` markdown sources |
+
+### Notes on Display and Viewport Settings
+
+**`DISPLAY_WIDTH`/`HEIGHT` vs `VIEWPORT_WIDTH`/`HEIGHT`**:
+
+- `DISPLAY_WIDTH`/`DISPLAY_HEIGHT` — Xvfb virtual display resolution. This is the size of the virtual X11 desktop that x11vnc captures and noVNC displays.
+- `VIEWPORT_WIDTH`/`VIEWPORT_HEIGHT` — Playwright browser viewport size. This is the CSS pixel size of the browser window, which determines page layout and `getBoundingClientRect()` values.
+- Typically both should be set to the same value. If the viewport is larger than the display, parts of the browser window will be off-screen in VNC.
+
+**`DEVICE_SCALE_FACTOR` and screenshot coordinates**:
+
+With `DEVICE_SCALE_FACTOR=2` (default):
+- Viewport: `1200×2000` (CSS pixels)
+- Screenshot output: `2400×4000` (physical pixels = viewport × scale factor)
+- `getBoundingClientRect()` returns CSS pixel coordinates
+- To map CSS coordinates to screenshot pixel coordinates, multiply by `DEVICE_SCALE_FACTOR`
+
+Example: An element at CSS position `(100, 200)` with size `(50, 30)` will be at pixel position `(200, 400)` with size `(100, 60)` in the screenshot when `DEVICE_SCALE_FACTOR=2`.
 
 Example usage in docker-compose.yml:
 
@@ -316,6 +388,28 @@ services:
       - VIEWPORT_WIDTH=1920
       - VIEWPORT_HEIGHT=1080
 ```
+
+## Claude Code Integration
+
+fuba-browser provides a [Claude Code](https://claude.com/claude-code) skill for quick setup.
+
+### Using the skill in this repo
+
+Clone the repo and run `/fuba-recorder-setup` in Claude Code. It will detect or start the container, issue a VNC URL, and show API/CLI usage.
+
+### Installing the skill in your own project
+
+Copy or symlink the skill into your project's `.claude/skills/`:
+
+```bash
+# Symlink (if fuba-browser repo is local)
+ln -s /path/to/fuba-browser/skills/fuba-recorder-setup .claude/skills/fuba-recorder-setup
+
+# Or copy
+cp -r /path/to/fuba-browser/skills/fuba-recorder-setup .claude/skills/
+```
+
+Then run `/fuba-recorder-setup` in Claude Code from your project.
 
 ## Documentation
 
