@@ -243,6 +243,32 @@ describe('Network Routes', () => {
     expect(response.body.error).toContain('dataUrl must be a string');
   });
 
+  it('POST /api/network/save returns 400 when dataUrl is an empty string', async () => {
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        dataUrl: '',
+        path: path.join(tempDir, 'empty-data-url.bin'),
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('dataUrl is required');
+  });
+
+  it('POST /api/network/save returns 400 when id is an empty string', async () => {
+    const response = await request(app)
+      .post('/api/network/save')
+      .send({
+        id: '',
+        path: path.join(tempDir, 'empty-id.bin'),
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.success).toBe(false);
+    expect(response.body.error).toContain('id is required');
+  });
+
   it('POST /api/network/save rejects unsafe output paths even if cwd is root', async () => {
     const originalCwd = process.cwd();
     process.chdir('/');

@@ -229,9 +229,15 @@ export function networkRoutes(browserController: BrowserController): Router {
       if (id !== undefined && typeof id !== 'string') {
         throw new NetworkSaveBadRequestError('id must be a string');
       }
+      if (id !== undefined && id.length === 0) {
+        throw new NetworkSaveBadRequestError('id is required');
+      }
 
       if (dataUrl !== undefined && typeof dataUrl !== 'string') {
         throw new NetworkSaveBadRequestError('dataUrl must be a string');
+      }
+      if (dataUrl !== undefined && dataUrl.length === 0) {
+        throw new NetworkSaveBadRequestError('dataUrl is required');
       }
 
       if (id === undefined && dataUrl === undefined) {
@@ -244,7 +250,7 @@ export function networkRoutes(browserController: BrowserController): Router {
       let sourceUrl: string | undefined;
       let sourceId: string | undefined;
 
-      if (dataUrl) {
+      if (dataUrl !== undefined) {
         const decoded = decodeDataUrl(dataUrl);
         body = decoded.body;
         contentType = decoded.contentType || 'application/octet-stream';
