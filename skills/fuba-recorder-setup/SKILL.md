@@ -20,10 +20,43 @@ Otherwise default to `localhost:39000`.
 curl -s --max-time 3 http://localhost:39000/health
 ```
 
-- `{"status":"ok",...}` → running. Skip to Step 3.
+- `{"status":"ok",...}` → running. Skip to Step 4.
 - Connection refused → go to Step 2.
 
-## Step 2: Start fuba-browser
+## Step 2: Check system resources
+
+fuba-browser requires substantial resources. Before starting, verify the host machine meets minimum requirements.
+
+Run these checks:
+
+```bash
+# Total memory in GB
+free -g | awk '/^Mem:/{print $2}'
+
+# CPU cores
+nproc
+
+# Docker shared memory default (if Docker is running)
+docker info --format '{{.MemTotal}}' 2>/dev/null
+```
+
+**Minimum requirements:**
+- **Memory**: 4GB free (8GB+ total recommended)
+- **CPU**: 2 cores (4+ recommended)
+- **Shared memory**: 2GB (`--shm-size=2g` is set by the launcher script and docker-compose.yml)
+
+**Evaluate the results:**
+- If total memory < 4GB: **STOP**. Tell the user: "メモリが不足しています（最低4GB必要、8GB以上推奨）。fuba-browser は Chromium を動かすため、十分なメモリが必要です。"
+- If CPU cores < 2: **WARN**. Tell the user: "CPU コア数が少ないです（2コア以上推奨、4コア以上で快適）。動作が遅くなる可能性があります。"
+- If both are sufficient: proceed silently.
+
+Also verify Docker is available:
+```bash
+docker --version
+```
+If Docker is not installed, **STOP** and tell the user to install Docker first.
+
+## Step 3: Start fuba-browser
 
 Try in order:
 
@@ -51,7 +84,7 @@ sleep 5
 curl -s --max-time 10 http://localhost:39000/health
 ```
 
-## Step 3: Issue a VNC URL
+## Step 4: Issue a VNC URL
 
 Ask the user for the hostname that they use to access this machine in their browser.
 
@@ -83,7 +116,7 @@ http://<API_HOST>/web-vnc?token=<TOKEN>
 
 Tell the user: this token is **one-time use** and expires in 5 minutes. Open it now.
 
-## Step 4: Verify with a test page
+## Step 5: Verify with a test page
 
 ```bash
 curl -s -X POST http://<API_HOST>/api/navigate \
@@ -93,7 +126,7 @@ curl -s http://<API_HOST>/api/screenshot -o /tmp/fuba-test.png
 
 Show the screenshot to the user to confirm the browser is working.
 
-## Step 5: Show cheat sheet
+## Step 6: Show cheat sheet
 
 ### API (curl)
 ```bash
