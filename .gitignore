@@ -11,6 +11,9 @@ build/
 # IDE
 .vscode/
 .idea/
+
+# Claude Code local settings (user-specific permissions)
+.claude/settings.local.json
 *.swp
 *.swo
 *~
