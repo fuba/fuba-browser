@@ -8,13 +8,24 @@ http://localhost:39000
 ## Health Check
 
 ### GET /health
-Returns the health status of the API server.
+Returns the health status of the application, not just HTTP process liveness.
 
-**Response:**
+**Response (healthy):**
 ```json
 {
   "status": "ok",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "application": "ok"
+}
+```
+
+**Response (unhealthy, HTTP 503):**
+```json
+{
+  "status": "unhealthy",
+  "version": "0.1.0",
+  "application": "unavailable",
+  "error": "Browser page is closed"
 }
 ```
 

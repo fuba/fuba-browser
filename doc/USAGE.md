@@ -469,10 +469,10 @@ fbb screenshot output.png         # Custom filename
 
 ### Check API Server Status
 ```bash
-fbb health               # Check if API server is running
+fbb health               # Check if application is healthy
 ```
 
-Returns server status and version information.
+Returns application health status and version information.
 
 ---
 
@@ -592,10 +592,10 @@ with open("screenshot.png", "wb") as f:
 
 ### Health Check
 ```bash
-fbb health               # Check if API server is running
+fbb health               # Check if application is healthy
 ```
 
-Returns server status and version information.
+Returns application health status and version information.
 
 ### Reset Browser
 ```bash

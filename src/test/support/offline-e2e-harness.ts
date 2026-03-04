@@ -239,8 +239,22 @@ export async function createOfflineE2EHarness(): Promise<OfflineE2EHarness> {
   app.use(express.json({ limit: BODY_PARSER_LIMIT }));
   app.use(express.urlencoded({ extended: true, limit: BODY_PARSER_LIMIT }));
 
-  app.get('/health', (_req, res) => {
-    res.json({ status: 'ok', version: '0.1.0' });
+  app.get('/health', async (_req, res) => {
+    const health = await browserController.checkHealth();
+    if (!health.ok) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        version: '0.1.0',
+        application: 'unavailable',
+        error: health.error || 'Application health check failed',
+      });
+    }
+
+    return res.json({
+      status: 'ok',
+      version: '0.1.0',
+      application: 'ok',
+    });
   });
 
   app.get('/web-vnc', (req, res) => {

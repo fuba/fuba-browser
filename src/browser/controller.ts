@@ -15,6 +15,14 @@ type RestorableBrowserCookie = BrowserCookie & {
   expirationDate?: number;
 };
 
+export interface BrowserHealthCheckResult {
+  ok: boolean;
+  pageClosed: boolean;
+  currentUrl?: string;
+  readyState?: string;
+  error?: string;
+}
+
 export class BrowserController {
   private static readonly MAX_NETWORK_REQUESTS = 500;
   private page: Page;
@@ -45,6 +53,34 @@ export class BrowserController {
     this.context = context;
     this.clearNetworkRequests();
     this.attachNetworkListeners();
+  }
+
+  async checkHealth(): Promise<BrowserHealthCheckResult> {
+    if (this.page.isClosed()) {
+      return {
+        ok: false,
+        pageClosed: true,
+        error: 'Browser page is closed',
+      };
+    }
+
+    try {
+      const currentUrl = this.page.url();
+      const readyState = await this.page.evaluate(() => document.readyState);
+      return {
+        ok: true,
+        pageClosed: false,
+        currentUrl,
+        readyState,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return {
+        ok: false,
+        pageClosed: false,
+        error: message,
+      };
+    }
   }
 
   getNetworkRequests(limit?: number): NetworkRequestRecord[] {

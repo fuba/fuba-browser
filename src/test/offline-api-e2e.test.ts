@@ -64,7 +64,7 @@ describe.sequential('Offline API E2E', () => {
     const currentHarness = requireHarness();
     const healthRes = await currentHarness.agent.get('/health');
     expect(healthRes.status).toBe(200);
-    expect(healthRes.body).toEqual({ status: 'ok', version: '0.1.0' });
+    expect(healthRes.body).toEqual({ status: 'ok', version: '0.1.0', application: 'ok' });
 
     const contentRes = await apiGet('/content');
     expect(contentRes.status).toBe(200);
