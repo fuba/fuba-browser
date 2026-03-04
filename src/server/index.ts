@@ -111,8 +111,22 @@ export async function startApiServer(
   app.use(discoveryRoutes('0.1.0'));
 
   // Health check
-  app.get('/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', version: '0.1.0' });
+  app.get('/health', async (_req: Request, res: Response) => {
+    const health = await browserController.checkHealth();
+    if (!health.ok) {
+      return res.status(503).json({
+        status: 'unhealthy',
+        version: '0.1.0',
+        application: 'unavailable',
+        error: health.error || 'Application health check failed',
+      });
+    }
+
+    return res.json({
+      status: 'ok',
+      version: '0.1.0',
+      application: 'ok',
+    });
   });
 
   const tokenStore = options.tokenStore ?? new TokenStore(
