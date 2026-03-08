@@ -384,7 +384,7 @@ program
   .action(async () => {
     const result = await client.health();
     if (result.success) {
-      info(`Server is healthy (version ${(result.data as { version: string }).version})`);
+      info(`Server is healthy (version ${result.data!.version})`);
     } else {
       error('Server is not responding', result.error);
     }

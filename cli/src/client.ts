@@ -96,9 +96,16 @@ export class FubaClient {
     return this.request<T>('DELETE', path);
   }
 
-  // Health check
-  async health(): Promise<ApiResponse<{ status: string; version: string }>> {
-    return this.get('/health');
+  // Health check - /health returns {status, version, application} instead of standard ApiResponse
+  async health(): Promise<ApiResponse<{ status: string; version: string; application: string }>> {
+    const result = await this.get<{ status: string; version: string; application: string }>('/health');
+    // /health endpoint doesn't follow standard {success, data} format
+    // If we got a raw health response (has 'status' field), wrap it
+    const raw = result as unknown as { status: string; version: string; application: string };
+    if (raw.status === 'ok' || raw.status === 'unhealthy') {
+      return { success: raw.status === 'ok', data: raw };
+    }
+    return result;
   }
 
   // Navigation
