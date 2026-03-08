@@ -383,8 +383,10 @@ program
   .description('Check API server health')
   .action(async () => {
     const result = await client.health();
-    if (result.success) {
-      info(`Server is healthy (version ${(result.data as { version: string }).version})`);
+    if (result.data?.status === 'ok') {
+      info(`Server is healthy (version ${result.data.version})`);
+    } else if (result.data?.status === 'unhealthy') {
+      error(`Server is unhealthy (version ${result.data.version}, application ${result.data.application})`, result.error);
     } else {
       error('Server is not responding', result.error);
     }

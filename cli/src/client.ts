@@ -40,6 +40,13 @@ export interface DocsBundleData {
   fetchedAt: string;
 }
 
+export interface HealthData {
+  status: 'ok' | 'unhealthy';
+  version: string;
+  application: string;
+  error?: string;
+}
+
 export class FubaClient {
   private baseUrl: string;
   private timeout: number;
@@ -96,9 +103,21 @@ export class FubaClient {
     return this.request<T>('DELETE', path);
   }
 
-  // Health check
-  async health(): Promise<ApiResponse<{ status: string; version: string }>> {
-    return this.get('/health');
+  // Health check - /health returns {status, version, application, error?} instead of standard ApiResponse
+  async health(): Promise<ApiResponse<HealthData>> {
+    const result = await this.get<HealthData>('/health');
+    // /health endpoint doesn't follow standard {success, data} format
+    // If we got a raw health response (has 'status' field), wrap it
+    const raw = result as unknown as Partial<HealthData>;
+    if (raw.status === 'ok' || raw.status === 'unhealthy') {
+      const data = raw as HealthData;
+      return {
+        success: data.status === 'ok',
+        data,
+        error: data.status === 'ok' ? undefined : data.error ?? 'Application health check failed',
+      };
+    }
+    return result;
   }
 
   // Navigation
