@@ -2,7 +2,7 @@
 
 import { Command } from 'commander';
 import { FubaClient } from './client.js';
-import { setOutputOptions, success, error, output, raw, info } from './output.js';
+import { setOutputOptions, success, error, output, raw, info, isJsonOutput } from './output.js';
 import { writeFileSync, readFileSync, existsSync } from 'fs';
 
 const program = new Command();
@@ -464,12 +464,12 @@ waitCmd
   .command('selector <selector>')
   .description('Wait for element to appear')
   .option('-t, --timeout <ms>', 'Timeout in milliseconds', '30000')
-  .option('-v, --visible', 'Wait for element to be visible')
+  .option('--state <state>', 'Wait state: visible or attached (default: visible)', 'visible')
   .action(async (selector: string, options) => {
     const result = await client.post('/api/wait/selector', {
       selector,
       timeout: parseInt(options.timeout),
-      visible: options.visible || undefined,
+      visible: options.state !== 'attached',
     });
     if (result.success) {
       success(`Element ${selector} found`);
@@ -942,12 +942,19 @@ networkCmd
   });
 
 networkCmd
-  .command('body <id>')
+  .command('body <id> [path]')
   .description('Get response body for a network request')
-  .action(async (id: string) => {
-    const result = await client.networkBody(id);
-    if (result.success) {
-      output(result.data);
+  .option('--type <type>', 'Response type: binary or base64', 'base64')
+  .action(async (id: string, path?: string, options?: { type?: string }) => {
+    const type = (options?.type === 'binary' ? 'binary' : 'base64') as 'binary' | 'base64';
+    const result = await client.networkBody(id, type);
+    if (result.success && result.data) {
+      if (path && type === 'binary') {
+        writeFileSync(path, result.data as Buffer);
+        success(`Response body saved to ${path}`);
+      } else {
+        output(result.data);
+      }
     } else {
       error('Failed to get response body', result.error);
     }
@@ -987,8 +994,12 @@ deviceCmd
   .action(async (profile: string) => {
     const result = await client.deviceSet(profile);
     if (result.success) {
-      success(`Device profile set to "${profile}"`);
-      output(result.data);
+      if (isJsonOutput()) {
+        output(result.data);
+      } else {
+        success(`Device profile set to "${profile}"`);
+        output(result.data);
+      }
     } else {
       error('Failed to set device profile', result.error);
     }
@@ -1000,10 +1011,21 @@ program
   .description('Export page as PDF')
   .option('--format <format>', 'Page format (A4, Letter, etc.)')
   .option('--landscape', 'Landscape orientation')
-  .action(async (path?: string, options?: { format?: string; landscape?: boolean }) => {
+  .option('--info', 'Return JSON with base64 PDF and metadata instead of binary')
+  .action(async (path?: string, options?: { format?: string; landscape?: boolean; info?: boolean }) => {
     const pdfOptions: Record<string, unknown> = {};
     if (options?.format) pdfOptions.format = options.format;
     if (options?.landscape) pdfOptions.landscape = true;
+
+    if (options?.info) {
+      const result = await client.pdfInfo(pdfOptions);
+      if (result.success) {
+        output(result.data);
+      } else {
+        error('Failed to export PDF', result.error);
+      }
+      return;
+    }
 
     const result = await client.pdf(pdfOptions);
     if (result.success && result.data) {
@@ -1038,9 +1060,13 @@ program
   .action(async () => {
     const result = await client.session();
     if (result.success && result.data) {
-      info(`URL: ${result.data.url}`);
-      info(`Title: ${result.data.title}`);
-      info(`Cookies: ${result.data.cookiesCount}`);
+      if (isJsonOutput()) {
+        output(result.data);
+      } else {
+        info(`URL: ${result.data.url}`);
+        info(`Title: ${result.data.title}`);
+        info(`Cookies: ${result.data.cookiesCount}`);
+      }
     } else {
       error('Failed to get session info', result.error);
     }

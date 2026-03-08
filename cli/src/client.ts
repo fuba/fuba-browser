@@ -74,11 +74,13 @@ export class FubaClient {
 
       clearTimeout(timeoutId);
 
-      // Handle binary responses (screenshot, pdf)
-      const contentType = response.headers.get('content-type');
-      if (contentType?.startsWith('image/') || contentType === 'application/pdf') {
+      // Handle binary responses (anything non-JSON)
+      const contentType = response.headers.get('content-type') ?? '';
+      const isJson = /\bjson\b/i.test(contentType);
+
+      if (!isJson) {
         const buffer = await response.arrayBuffer();
-        return { success: true, data: Buffer.from(buffer) as unknown as T };
+        return { success: response.ok, data: Buffer.from(buffer) as unknown as T };
       }
 
       return await response.json() as ApiResponse<T>;
