@@ -119,3 +119,7 @@ function truncate(str: string, maxLen: number): string {
 export function raw(data: string | Buffer): void {
   process.stdout.write(data);
 }
+
+export function isJsonOutput(): boolean {
+  return globalOptions.json;
+}

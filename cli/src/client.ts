@@ -74,11 +74,13 @@ export class FubaClient {
 
       clearTimeout(timeoutId);
 
-      // Handle binary responses (screenshot, pdf)
-      const contentType = response.headers.get('content-type');
-      if (contentType?.startsWith('image/') || contentType === 'application/pdf') {
+      // Handle binary responses (anything non-JSON)
+      const contentType = response.headers.get('content-type') ?? '';
+      const isJson = /\bjson\b/i.test(contentType);
+
+      if (!isJson) {
         const buffer = await response.arrayBuffer();
-        return { success: true, data: Buffer.from(buffer) as unknown as T };
+        return { success: response.ok, data: Buffer.from(buffer) as unknown as T };
       }
 
       return await response.json() as ApiResponse<T>;
@@ -303,5 +305,60 @@ export class FubaClient {
       return this.action(selector, 'select', value);
     }
     return this.post('/api/select', { selector, value });
+  }
+
+  // Network
+  async networkList(): Promise<ApiResponse<{ entries: unknown[]; count: number }>> {
+    return this.get('/api/network');
+  }
+
+  async networkClear(): Promise<ApiResponse<{ cleared: number }>> {
+    return this.delete('/api/network');
+  }
+
+  async networkBody(id: string, type: 'binary' | 'base64' = 'base64'): Promise<ApiResponse<unknown>> {
+    return this.get(`/api/network/body/${encodeURIComponent(id)}?type=${type}`);
+  }
+
+  // Device
+  async deviceInfo(): Promise<ApiResponse<unknown>> {
+    return this.get('/api/device');
+  }
+
+  async deviceProfiles(): Promise<ApiResponse<{ profiles: unknown[] }>> {
+    return this.get('/api/device/profiles');
+  }
+
+  async deviceSet(profile: string): Promise<ApiResponse<unknown>> {
+    return this.post('/api/device', { profile });
+  }
+
+  // PDF
+  async pdf(options: Record<string, unknown> = {}): Promise<ApiResponse<Buffer>> {
+    return this.post('/api/pdf', options);
+  }
+
+  async pdfInfo(options: Record<string, unknown> = {}): Promise<ApiResponse<unknown>> {
+    return this.post('/api/pdf/info', options);
+  }
+
+  // DOM
+  async dom(): Promise<ApiResponse<unknown>> {
+    return this.get('/api/dom');
+  }
+
+  // Session info
+  async session(): Promise<ApiResponse<{ url: string; title: string; cookiesCount: number }>> {
+    return this.get('/api/session');
+  }
+
+  // Set cookie
+  async setCookie(cookie: Record<string, unknown>): Promise<ApiResponse<unknown>> {
+    return this.post('/api/cookies', cookie);
+  }
+
+  // Clear snapshot
+  async clearSnapshot(): Promise<ApiResponse<unknown>> {
+    return this.delete('/api/snapshot');
   }
 }
