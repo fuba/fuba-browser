@@ -49,7 +49,7 @@ Run 'fbb --help' for all commands, or 'fbb <command> --help' for command details
 program
   .name('fbb')
   .description('CLI for fuba-browser automation')
-  .version('3.1.0')
+  .version('3.2.0')
   .option('--host <host>', 'API host', 'localhost')
   .option('--port <port>', 'API port', '39000')
   .option('--timeout <ms>', 'Request timeout in milliseconds', '30000')
