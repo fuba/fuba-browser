@@ -1,6 +1,6 @@
 {
   "name": "fbb",
-  "version": "3.2.0",
+  "version": "3.2.1",
   "description": "CLI tool for fuba-browser automation",
   "type": "module",
   "bin": {
