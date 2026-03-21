@@ -10,7 +10,7 @@ import {
   NetworkResponseBody,
   DownloadRecord,
 } from '../types/browser.js';
-import { readFile } from 'fs/promises';
+import { readFile, unlink } from 'fs/promises';
 import { convertToMarkdown } from '../utils/markdown.js';
 
 type RestorableBrowserCookie = BrowserCookie & {
@@ -812,7 +812,8 @@ export class BrowserController {
    * Must be called BEFORE the action that triggers the download.
    */
   async waitForDownload(options: { timeout?: number } = {}): Promise<DownloadRecord> {
-    const { timeout = 60000 } = options;
+    const rawTimeout = options.timeout ?? 60000;
+    const timeout = Math.max(1, Math.min(rawTimeout, 300000));
 
     return new Promise<DownloadRecord>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -854,6 +855,10 @@ export class BrowserController {
 
   clearDownloads(): number {
     const cleared = this.downloads.length;
+    // Delete temp files in background
+    for (const filePath of this.downloadPathById.values()) {
+      unlink(filePath).catch(() => {});
+    }
     this.downloads = [];
     this.downloadById.clear();
     this.downloadPathById.clear();
@@ -930,6 +935,10 @@ export class BrowserController {
       const oldest = this.downloads.shift();
       if (!oldest) return;
       this.downloadById.delete(oldest.id);
+      const filePath = this.downloadPathById.get(oldest.id);
+      if (filePath) {
+        unlink(filePath).catch(() => {});
+      }
       this.downloadPathById.delete(oldest.id);
     }
   }

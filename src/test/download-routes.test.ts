@@ -112,7 +112,7 @@ describe('Download Routes', () => {
     expect(response.status).toBe(200);
     expect(response.headers['content-type']).toContain('application/octet-stream');
     expect(response.headers['x-download-id']).toBe('dl-1');
-    expect(response.headers['x-suggested-filename']).toBe('file.zip');
+    expect(response.headers['x-suggested-filename']).toBe(encodeURIComponent('file.zip'));
     expect(mockBrowserController.getDownloadBody).toHaveBeenCalledWith('dl-1');
   });
 

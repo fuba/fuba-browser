@@ -50,7 +50,7 @@ export function downloadRoutes(browserController: BrowserController): Router {
         res.set('Content-Type', 'application/octet-stream');
         res.set('Content-Disposition', `attachment; filename="${encodeURIComponent(record.suggestedFilename)}"`);
         res.set('X-Download-Id', id);
-        res.set('X-Suggested-Filename', record.suggestedFilename);
+        res.set('X-Suggested-Filename', encodeURIComponent(record.suggestedFilename));
         res.send(body);
       }).catch((error) => {
         res.status(500).json({ success: false, error: (error as Error).message });
