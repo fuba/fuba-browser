@@ -13,6 +13,7 @@ import { storageRoutes } from './storage.js';
 import { debugRoutes } from './debug.js';
 import { evalRoutes } from './eval.js';
 import { networkRoutes } from './network.js';
+import { downloadRoutes } from './download.js';
 import { stateRoutes } from './state.js';
 import { systemRoutes } from './system.js';
 import { deviceRoutes } from './device.js';
@@ -61,6 +62,9 @@ export function setupRoutes(
 
   // Network inspection routes (request log, response body export)
   app.use('/api', networkRoutes(browserController));
+
+  // Download management routes (wait, list, fetch downloaded files)
+  app.use('/api', downloadRoutes(browserController));
 
   // State routes (save/load authentication state)
   app.use('/api', stateRoutes(browserController));

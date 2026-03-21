@@ -139,3 +139,15 @@ export interface NetworkResponseBody {
   contentType?: string;
   body: Buffer;
 }
+
+// Download tracking
+export interface DownloadRecord {
+  id: string;
+  url: string;
+  suggestedFilename: string;
+  status: 'in_progress' | 'completed' | 'failed';
+  error?: string;
+  startedAt: string;
+  completedAt?: string;
+  size?: number;
+}

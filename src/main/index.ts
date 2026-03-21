@@ -53,6 +53,7 @@ async function initializeBrowser() {
   const contextOptions: Parameters<typeof browser.newContext>[0] = deviceOptions
     ? {
         ...deviceOptions,
+        acceptDownloads: true,
         ignoreHTTPSErrors: true,
         locale,
         timezoneId,
@@ -61,6 +62,7 @@ async function initializeBrowser() {
         userAgent: CHROME_USER_AGENT,
         viewport: { width: viewportWidth, height: viewportHeight },
         deviceScaleFactor,
+        acceptDownloads: true,
         ignoreHTTPSErrors: true,
         locale,
         timezoneId,
