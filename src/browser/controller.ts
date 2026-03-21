@@ -1,4 +1,4 @@
-import { Page, BrowserContext, Cookie, Request as PlaywrightRequest, Response as PlaywrightResponse } from 'playwright';
+import { Page, BrowserContext, Cookie, Download, Request as PlaywrightRequest, Response as PlaywrightResponse } from 'playwright';
 import {
   ElementInfo,
   PageContent,
@@ -8,7 +8,9 @@ import {
   BrowserCookie,
   NetworkRequestRecord,
   NetworkResponseBody,
+  DownloadRecord,
 } from '../types/browser.js';
+import { readFile, unlink } from 'fs/promises';
 import { convertToMarkdown } from '../utils/markdown.js';
 
 type RestorableBrowserCookie = BrowserCookie & {
@@ -38,10 +40,24 @@ export class BrowserController {
     requestfailed: (request: PlaywrightRequest) => void;
   };
 
+  // Download tracking
+  private static readonly MAX_DOWNLOADS = 50;
+  private downloads: DownloadRecord[] = [];
+  private downloadById = new Map<string, DownloadRecord>();
+  private downloadPathById = new Map<string, string>();
+  private downloadSequence = 0;
+  private downloadWaiters: Array<{
+    resolve: (record: DownloadRecord) => void;
+    reject: (error: Error) => void;
+    timer: ReturnType<typeof setTimeout>;
+  }> = [];
+  private downloadListener?: (download: Download) => void;
+
   constructor(page: Page, context: BrowserContext) {
     this.page = page;
     this.context = context;
     this.attachNetworkListeners();
+    this.attachDownloadListener();
   }
 
   /**
@@ -49,10 +65,13 @@ export class BrowserController {
    */
   setPageAndContext(page: Page, context: BrowserContext): void {
     this.detachNetworkListeners();
+    this.detachDownloadListener();
     this.page = page;
     this.context = context;
     this.clearNetworkRequests();
+    this.clearDownloads();
     this.attachNetworkListeners();
+    this.attachDownloadListener();
   }
 
   async checkHealth(): Promise<BrowserHealthCheckResult> {
@@ -783,6 +802,144 @@ export class BrowserController {
       }
       this.networkRequestById.delete(oldest.id);
       this.networkResponseById.delete(oldest.id);
+    }
+  }
+
+  // Download methods
+
+  /**
+   * Wait for the next browser download to complete.
+   * Must be called BEFORE the action that triggers the download.
+   */
+  async waitForDownload(options: { timeout?: number } = {}): Promise<DownloadRecord> {
+    const rawTimeout = options.timeout ?? 60000;
+    const timeout = Math.max(1, Math.min(rawTimeout, 300000));
+
+    return new Promise<DownloadRecord>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        const index = this.downloadWaiters.findIndex(w => w.resolve === resolve);
+        if (index >= 0) {
+          this.downloadWaiters.splice(index, 1);
+        }
+        reject(new Error('Timeout waiting for download'));
+      }, timeout);
+
+      this.downloadWaiters.push({ resolve, reject, timer });
+    });
+  }
+
+  getDownloads(): DownloadRecord[] {
+    return [...this.downloads];
+  }
+
+  getDownloadById(id: string): DownloadRecord | undefined {
+    return this.downloadById.get(id);
+  }
+
+  async getDownloadBody(id: string): Promise<Buffer> {
+    const record = this.downloadById.get(id);
+    if (!record) {
+      throw new Error(`Download not found: ${id}`);
+    }
+    if (record.status !== 'completed') {
+      throw new Error(`Download not completed: ${id} (status: ${record.status})`);
+    }
+
+    const filePath = this.downloadPathById.get(id);
+    if (!filePath) {
+      throw new Error(`Download file path not available: ${id}`);
+    }
+
+    return await readFile(filePath);
+  }
+
+  clearDownloads(): number {
+    const cleared = this.downloads.length;
+    // Delete temp files in background
+    for (const filePath of this.downloadPathById.values()) {
+      unlink(filePath).catch(() => {});
+    }
+    this.downloads = [];
+    this.downloadById.clear();
+    this.downloadPathById.clear();
+    return cleared;
+  }
+
+  private attachDownloadListener(): void {
+    const onDownload = async (download: Download) => {
+      const id = `dl-${++this.downloadSequence}`;
+      const record: DownloadRecord = {
+        id,
+        url: download.url(),
+        suggestedFilename: download.suggestedFilename(),
+        status: 'in_progress',
+        startedAt: new Date().toISOString(),
+      };
+
+      this.downloads.push(record);
+      this.downloadById.set(id, record);
+      this.trimDownloads();
+
+      try {
+        // Wait for download to complete; Playwright saves to a temp path
+        const filePath = await download.path();
+        if (!filePath) {
+          throw new Error('Download was cancelled or deleted');
+        }
+
+        record.status = 'completed';
+        record.completedAt = new Date().toISOString();
+        this.downloadPathById.set(id, filePath);
+
+        // Resolve the first pending waiter
+        if (this.downloadWaiters.length > 0) {
+          const waiter = this.downloadWaiters.shift()!;
+          clearTimeout(waiter.timer);
+          waiter.resolve(record);
+        }
+      } catch (error) {
+        record.status = 'failed';
+        record.error = (error as Error).message;
+        record.completedAt = new Date().toISOString();
+
+        // Reject the first pending waiter
+        if (this.downloadWaiters.length > 0) {
+          const waiter = this.downloadWaiters.shift()!;
+          clearTimeout(waiter.timer);
+          waiter.reject(error as Error);
+        }
+      }
+    };
+
+    this.downloadListener = onDownload;
+    this.page.on('download', onDownload);
+  }
+
+  private detachDownloadListener(): void {
+    if (!this.downloadListener) {
+      return;
+    }
+    this.page.off('download', this.downloadListener);
+    this.downloadListener = undefined;
+
+    // Reject all pending waiters
+    for (const waiter of this.downloadWaiters) {
+      clearTimeout(waiter.timer);
+      waiter.reject(new Error('Browser reset while waiting for download'));
+    }
+    this.downloadWaiters = [];
+  }
+
+  private trimDownloads(): void {
+    while (this.downloads.length > BrowserController.MAX_DOWNLOADS) {
+      const oldest = this.downloads.shift();
+      if (!oldest) return;
+      this.downloadById.delete(oldest.id);
+      const filePath = this.downloadPathById.get(oldest.id);
+      if (filePath) {
+        unlink(filePath).catch(() => {});
+      }
+      this.downloadPathById.delete(oldest.id);
     }
   }
 

@@ -32,6 +32,7 @@ Common Commands:
   Wait:         wait selector|text|url|load
   State:        state save|load|info, cookies, storage
   Network:      network list|clear|body
+  Download:     download wait|list|get|clear
   Device:       device info|profiles|set
   VNC:          vnc [--vnc-host host:port]
   System:       health, reset
@@ -957,6 +958,74 @@ networkCmd
       }
     } else {
       error('Failed to get response body', result.error);
+    }
+  });
+
+// ===== Download commands =====
+const downloadCmd = program.command('download').alias('dl').description('Browser download management');
+
+downloadCmd
+  .command('wait')
+  .description('Wait for the next browser download to complete')
+  .option('-t, --timeout <ms>', 'Timeout in milliseconds', '60000')
+  .action(async (options) => {
+    const result = await client.downloadWait(parseInt(options.timeout));
+    if (result.success) {
+      output(result.data);
+    } else {
+      error('Download wait failed', result.error);
+    }
+  });
+
+downloadCmd
+  .command('list')
+  .alias('ls')
+  .description('List tracked downloads')
+  .action(async () => {
+    const result = await client.downloadList();
+    if (result.success) {
+      output(result.data);
+    } else {
+      error('Failed to list downloads', result.error);
+    }
+  });
+
+downloadCmd
+  .command('get <id> [path]')
+  .description('Get download metadata, or save file with --binary')
+  .option('--binary', 'Download as binary file')
+  .action(async (id: string, path?: string, options?: { binary?: boolean }) => {
+    if (options?.binary || path) {
+      const result = await client.downloadGet(id, 'binary');
+      if (result.success && result.data) {
+        if (path) {
+          writeFileSync(path, result.data as Buffer);
+          success(`Downloaded file saved to ${path}`);
+        } else {
+          raw(result.data as Buffer);
+        }
+      } else {
+        error('Failed to get download', result.error);
+      }
+    } else {
+      const result = await client.downloadGet(id);
+      if (result.success) {
+        output(result.data);
+      } else {
+        error('Failed to get download', result.error);
+      }
+    }
+  });
+
+downloadCmd
+  .command('clear')
+  .description('Clear download history')
+  .action(async () => {
+    const result = await client.downloadClear();
+    if (result.success) {
+      success(`Cleared ${(result.data as { cleared: number })?.cleared ?? 0} download entries`);
+    } else {
+      error('Failed to clear downloads', result.error);
     }
   });
 

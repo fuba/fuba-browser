@@ -320,6 +320,24 @@ export class FubaClient {
     return this.get(`/api/network/body/${encodeURIComponent(id)}?type=${type}`);
   }
 
+  // Download
+  async downloadList(): Promise<ApiResponse<{ entries: unknown[]; count: number }>> {
+    return this.get('/api/download');
+  }
+
+  async downloadWait(timeout?: number): Promise<ApiResponse<unknown>> {
+    return this.post('/api/download/wait', timeout ? { timeout } : {});
+  }
+
+  async downloadGet(id: string, type: 'binary' | 'json' = 'json'): Promise<ApiResponse<unknown>> {
+    const query = type === 'binary' ? '?type=binary' : '';
+    return this.get(`/api/download/${encodeURIComponent(id)}${query}`);
+  }
+
+  async downloadClear(): Promise<ApiResponse<{ cleared: number }>> {
+    return this.delete('/api/download');
+  }
+
   // Device
   async deviceInfo(): Promise<ApiResponse<unknown>> {
     return this.get('/api/device');
