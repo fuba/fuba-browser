@@ -409,6 +409,49 @@ fbb state load ~/auth/example.json --navigate
 
 ---
 
+## Download Commands
+
+Intercept and retrieve files downloaded by the browser. Uses a **"wait before click" pattern** — call `download wait` before triggering the download action.
+
+### Wait for Download
+```bash
+fbb download wait                # Wait for next download (default: 60s timeout)
+fbb download wait -t 120000      # Custom timeout in milliseconds
+```
+
+### List Downloads
+```bash
+fbb download list                # List all tracked downloads
+fbb download ls                  # Alias
+```
+
+### Get Download
+```bash
+fbb download get dl-1            # Get download metadata
+fbb download get dl-1 ./file.zip --binary  # Save file locally
+fbb download get dl-1 --binary   # Output binary to stdout
+```
+
+### Clear Downloads
+```bash
+fbb download clear               # Clear download history
+```
+
+### Example: Download a File
+```bash
+# 1. Start waiting for download (in background)
+fbb download wait &
+
+# 2. Click the download button
+fbb click '.download-btn'
+
+# 3. Wait returns with download info
+# 4. Save the file locally
+fbb download get dl-1 ./my-file.zip --binary
+```
+
+---
+
 ## Content Commands
 
 ### Get Page Content

@@ -19,6 +19,7 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 - **Authentication state** - Save/load browser state (cookies, storage)
 - **Debug tools** - Console logs, errors, JavaScript eval, element highlight
 - **Network inspection/export API** - Request log, response body fetch, and file save (`/api/network*`)
+- **Download capture API** - Intercept and retrieve browser-initiated file downloads (`/api/download*`)
 - **Web VNC** for remote GUI access
 - **Docker-based deployment** with X11 support
 - **Japanese font support** (Noto Sans CJK & Noto Serif CJK)
@@ -253,6 +254,14 @@ fbb console
 fbb errors
 fbb screenshot [path]
 fbb health              # Check API server health
+```
+
+### Download
+```bash
+fbb download wait [-t timeout]          # Wait for next browser download
+fbb download list                       # List tracked downloads
+fbb download get <id> [path] [--binary] # Get metadata or save file
+fbb download clear                      # Clear download history
 ```
 
 ### System

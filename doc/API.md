@@ -1222,6 +1222,110 @@ fbb reset
 
 ---
 
+## Download API
+
+Intercept, track, and retrieve files downloaded by the browser.
+Uses a **"wait before click" pattern**: call `POST /api/download/wait` before triggering the download action, ensuring no race condition.
+
+### POST /api/download/wait
+Wait for the next browser download to complete (long-polling).
+
+**Request Body:**
+```json
+{
+  "timeout": 60000
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `timeout` | number | No | Timeout in milliseconds (default: 60000, max: 300000) |
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "dl-1",
+    "url": "https://example.com/file.zip",
+    "suggestedFilename": "file.zip",
+    "status": "completed",
+    "startedAt": "2026-03-21T00:00:00.000Z",
+    "completedAt": "2026-03-21T00:00:05.000Z"
+  }
+}
+```
+
+### GET /api/download
+List all tracked downloads.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "entries": [
+      {
+        "id": "dl-1",
+        "url": "https://example.com/file.zip",
+        "suggestedFilename": "file.zip",
+        "status": "completed",
+        "startedAt": "2026-03-21T00:00:00.000Z",
+        "completedAt": "2026-03-21T00:00:05.000Z"
+      }
+    ],
+    "count": 1
+  }
+}
+```
+
+### GET /api/download/:id
+Get download metadata by ID.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "id": "dl-1",
+    "url": "https://example.com/file.zip",
+    "suggestedFilename": "file.zip",
+    "status": "completed",
+    "startedAt": "2026-03-21T00:00:00.000Z",
+    "completedAt": "2026-03-21T00:00:05.000Z"
+  }
+}
+```
+
+### GET /api/download/:id?type=binary
+Get downloaded file content as binary.
+
+**Response:**
+- Raw file bytes with `Content-Type: application/octet-stream`
+- Includes headers:
+  - `X-Download-Id: <id>`
+  - `X-Suggested-Filename: <url-encoded filename>`
+  - `Content-Disposition: attachment; filename="<url-encoded filename>"`
+
+**Errors:**
+- `404` if the download ID is not found
+- `500` if the download is not yet completed
+
+### DELETE /api/download
+Clear download history and delete temp files.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "cleared": 3
+  }
+}
+```
+
+---
+
 ## Error Responses
 
 All endpoints return error responses in the following format:
