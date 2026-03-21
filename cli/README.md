@@ -175,6 +175,21 @@ fbb screenshot output.png
 **State load options:**
 - `-n, --navigate` - Navigate to saved URL after loading
 
+### Download
+
+| Command | Description |
+|---------|-------------|
+| `download wait` | Wait for next browser download to complete (alias: `dl wait`) |
+| `download list` | List tracked downloads (alias: `dl ls`) |
+| `download get <id> [path]` | Get download metadata or save file (`--binary`) |
+| `download clear` | Clear download history |
+
+**Download wait options:**
+- `-t, --timeout <ms>` - Timeout in milliseconds (default: 60000)
+
+**Download get options:**
+- `--binary` - Download as binary file (auto-enabled when path is specified)
+
 ### Debug
 
 | Command | Description |
