@@ -74,7 +74,7 @@ git clone https://github.com/fuba/fuba-browser.git
 cd fuba-browser
 npm ci
 npm run build
-docker-compose up
+docker compose up
 ```
 
 ## Quick Start
@@ -85,8 +85,8 @@ docker-compose up
 # Using launcher script
 fuba-browser start
 
-# Or using docker-compose (from source)
-docker-compose up
+# Or using docker compose (from source)
+docker compose up
 
 # Access points:
 # - REST API: http://localhost:39000

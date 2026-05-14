@@ -12,10 +12,10 @@
     "test:ci": "vitest run --exclude src/test/offline-api-e2e.test.ts",
     "test:e2e:offline": "vitest run src/test/offline-api-e2e.test.ts",
     "test:watch": "vitest",
-    "start": "docker-compose up",
-    "stop": "docker-compose down",
-    "logs": "docker-compose logs -f",
-    "rebuild": "docker-compose build --no-cache"
+    "start": "docker compose up",
+    "stop": "docker compose down",
+    "logs": "docker compose logs -f",
+    "rebuild": "docker compose build --no-cache"
   },
   "repository": {
     "type": "git",
