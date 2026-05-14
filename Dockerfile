@@ -44,16 +44,18 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Pin Playwright browser path before install so npm ci's postinstall and the
+# explicit `playwright install` below land in the same directory.
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+
+# Install dependencies (no automatic browser download — handled below).
 RUN npm ci --omit=dev
 
-# Set Playwright browser path to a shared location
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
-
-# Install Playwright browsers (Chromium only) to shared path
+# Install Chromium explicitly to the shared path. System libs are already
+# provided by the apt-get block above, so we skip `install-deps`.
 RUN mkdir -p /opt/playwright-browsers && \
     npx playwright install chromium && \
-    npx playwright install-deps chromium && \
     chmod -R 755 /opt/playwright-browsers
 
 # Copy built application
