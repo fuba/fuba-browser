@@ -127,7 +127,7 @@ git clone https://github.com/fuba/fuba-browser.git
 cd fuba-browser
 npm ci
 npm run build
-docker-compose up
+docker compose up
 ```
 
 Access points:
@@ -678,5 +678,5 @@ fbb reset                # Restart browser process
 
 ### Debug Mode
 ```bash
-DEBUG=true docker-compose up
+DEBUG=true docker compose up
 ```

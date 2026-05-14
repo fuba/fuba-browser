@@ -6,9 +6,7 @@ import { PageManager } from '../browser/page-manager.js';
 import { getBrowserConfig } from '../config/browser-config.js';
 import { resolveDeviceProfile } from '../config/device-profiles.js';
 import { VncPasswordManager } from '../server/vnc-password-manager.js';
-
-// Use a standard Chrome User-Agent to avoid detection as automation
-const CHROME_USER_AGENT = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36';
+import { buildChromeUserAgent } from './user-agent.js';
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
@@ -49,6 +47,10 @@ async function initializeBrowser() {
   // Launch browser
   browser = await chromium.launch(launchOptions);
 
+  // Build a desktop User-Agent that matches the running Chromium major version,
+  // so UA / Sec-CH-UA stay consistent and bot-detection heuristics don't flag us.
+  const desktopUserAgent = buildChromeUserAgent(browser.version());
+
   // Create browser context: use device profile if set, otherwise desktop defaults
   const contextOptions: Parameters<typeof browser.newContext>[0] = deviceOptions
     ? {
@@ -59,7 +61,7 @@ async function initializeBrowser() {
         timezoneId,
       }
     : {
-        userAgent: CHROME_USER_AGENT,
+        userAgent: desktopUserAgent,
         viewport: { width: viewportWidth, height: viewportHeight },
         deviceScaleFactor,
         acceptDownloads: true,
