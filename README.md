@@ -50,7 +50,7 @@ The launcher script automatically pulls the Docker image and manages the contain
 Pull the image from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/fuba/fuba-browser:1.0.0
+docker pull ghcr.io/fuba/fuba-browser:3.4.2
 
 # Or use the latest version
 docker pull ghcr.io/fuba/fuba-browser:latest
@@ -64,7 +64,7 @@ docker run -d \
   -p 39000:39000 \
   -p 39001:6080 \
   --shm-size=2g \
-  ghcr.io/fuba/fuba-browser:1.0.0
+  ghcr.io/fuba/fuba-browser:3.4.2
 ```
 
 ### Building from Source
@@ -331,7 +331,7 @@ fbb vnc --vnc-host myserver:39001    # Remote access
 - **Browser**: Playwright + Chromium
 - **Backend**: Node.js + TypeScript
 - **API Server**: Express
-- **Browser Control**: Chrome DevTools Protocol
+- **Browser Control**: Playwright API
 - **Remote Access**: noVNC + x11vnc
 - **CLI**: Commander.js + chalk
 

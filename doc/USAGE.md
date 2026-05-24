@@ -99,7 +99,7 @@ Example:
 FBB_AUTO_UPDATE=false fuba-browser start
 
 # Use specific version via environment
-FBB_TAG=1.0.0 fuba-browser start
+FBB_TAG=3.4.2 fuba-browser start
 ```
 
 ### Option 2: Using Docker Directly
@@ -108,7 +108,7 @@ Pull and run the image from GitHub Container Registry:
 
 ```bash
 # Pull the image
-docker pull ghcr.io/fuba/fuba-browser:1.0.0
+docker pull ghcr.io/fuba/fuba-browser:3.4.2
 
 # Run the container
 docker run -d \
@@ -116,7 +116,7 @@ docker run -d \
   -p 39000:39000 \
   -p 39001:6080 \
   --shm-size=2g \
-  ghcr.io/fuba/fuba-browser:1.0.0
+  ghcr.io/fuba/fuba-browser:3.4.2
 ```
 
 ### Option 3: Building from Source

@@ -51,8 +51,11 @@ cd fuba-browser
 # Install dependencies
 npm install
 
-# Run in development mode
-npm run dev
+# Build TypeScript
+npm run build
+
+# Start the stack (Docker)
+docker compose up
 ```
 
 ### Testing
@@ -89,9 +92,9 @@ npm run lint
 
 ### 1. New API Endpoint
 
-Add route in `src/server/routes/browser.ts`:
+Add route in `src/server/routes/browser.ts` (routers are mounted under `/api`, so use the path without the `/api` prefix):
 ```typescript
-router.post('/api/new-feature', async (req, res) => {
+router.post('/new-feature', async (req, res) => {
   try {
     const result = await browserController.newFeature(req.body);
     res.json({ success: true, data: result });
@@ -107,7 +110,7 @@ Add method in `src/browser/controller.ts`:
 ```typescript
 async newFeature(params: any): Promise<any> {
   await this.connect();
-  // Implementation using Chrome DevTools Protocol
+  // Implementation using the Playwright API
   return result;
 }
 ```
@@ -122,15 +125,16 @@ export interface NewFeatureRequest {
 }
 ```
 
-## Chrome DevTools Protocol
+## Browser Control (Playwright)
 
-We use Chrome DevTools Protocol for browser control. Key domains:
-- `Page`: Navigation, screenshots
-- `DOM`: Element inspection
-- `Runtime`: JavaScript execution
-- `Input`: Mouse/keyboard events
+Browser control is implemented with the [Playwright](https://playwright.dev/) API
+(`Page` / `BrowserContext`), not raw Chrome DevTools Protocol. Key areas:
+- Navigation & screenshots: `page.goto()`, `page.screenshot()`
+- Element interaction: `page.click()`, `page.fill()`, `page.hover()`, etc.
+- JavaScript execution: `page.evaluate()`
+- DOM / accessibility inspection for the snapshot system
 
-Reference: https://chromedevtools.github.io/devtools-protocol/
+Reference: https://playwright.dev/docs/api/class-page
 
 ## Building for Production
 

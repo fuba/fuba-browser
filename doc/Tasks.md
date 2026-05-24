@@ -12,34 +12,34 @@
   - Playwright API統合
 
 ## Phase 2: Core Features (Medium Priority)
-- [ ] REST APIサーバーの実装
+- [x] REST APIサーバーの実装
   - APIルーティング設計
   - ミドルウェア設定
   - エラーハンドリング
-- [ ] ブラウザ制御エンドポイントの実装
+- [x] ブラウザ制御エンドポイントの実装
   - `/api/navigate` - ページ遷移
   - `/api/scroll` - スクロール操作
   - `/api/click` - クリック操作
   - `/api/type` - テキスト入力
   - `/api/screenshot` - スクリーンショット取得
-- [ ] ページ内容取得とMarkdown変換機能の実装
+- [x] ページ内容取得とMarkdown変換機能の実装
   - DOM解析エンジン
   - Markdown拡張フォーマット設計
   - 要素フィルタリング（3%以上の面積）
-- [ ] 要素の座標情報・識別情報付与機能の実装
+- [x] 要素の座標情報・識別情報付与機能の実装
   - 要素のbounding box計算
   - セレクタ生成
   - インタラクティブ要素の検出
-- [ ] Cookie管理機能の実装
+- [x] Cookie管理機能の実装
   - Cookie永続化
   - セッション管理
 
 ## Phase 3: Advanced Features (Low Priority)
-- [ ] Web VNC機能の実装
+- [x] Web VNC機能の実装
   - noVNCまたは類似ライブラリの統合
   - WebSocket通信
   - 画面共有とリモート操作
-- [ ] Docker環境の構築（Linux版）
+- [x] Docker環境の構築（Linux版）
   - Dockerfile作成
   - X11/Wayland対応
   - docker-compose設定
@@ -52,7 +52,7 @@
 - **Browser**: Playwright + Chromium
 - **Backend**: Node.js + TypeScript
 - **API**: Express
-- **Browser Control**: Chrome DevTools Protocol
+- **Browser Control**: Playwright API
 - **VNC**: noVNC
 - **Container**: Docker (Linux)
 

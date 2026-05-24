@@ -88,7 +88,7 @@ Returns the list of available documents.
         "id": "api",
         "title": "REST API Reference",
         "path": "doc/API.md",
-        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v2.0.1/doc/API.md"
+        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v3.4.2/doc/API.md"
       }
     ],
     "bundleEndpoint": "/api/docs/llm"
@@ -113,7 +113,7 @@ Returns one markdown document.
     "id": "api",
     "title": "REST API Reference",
     "path": "doc/API.md",
-    "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v2.0.1/doc/API.md",
+    "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v3.4.2/doc/API.md",
     "markdown": "# Fuba Browser API Documentation...",
     "fetchedAt": "2026-02-13T01:20:00.000Z"
   }
@@ -140,7 +140,7 @@ Returns a concatenated markdown bundle for LLM context input.
         "id": "api",
         "title": "REST API Reference",
         "path": "doc/API.md",
-        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v2.0.1/doc/API.md"
+        "sourceUrl": "https://raw.githubusercontent.com/fuba/fuba-browser/v3.4.2/doc/API.md"
       }
     ],
     "markdown": "# Fuba Browser Documentation Bundle...",
