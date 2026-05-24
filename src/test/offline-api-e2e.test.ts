@@ -3,6 +3,7 @@ import { Response } from 'superagent';
 import { Snapshot } from '../types/snapshot.js';
 import { addConsoleMessage, addPageError } from '../server/routes/debug.js';
 import { createOfflineE2EHarness, OfflineE2EHarness } from './support/offline-e2e-harness.js';
+import { resolveAppVersion } from '../utils/version.js';
 
 function binaryResponseParser(
   res: Response,
@@ -64,7 +65,7 @@ describe.sequential('Offline API E2E', () => {
     const currentHarness = requireHarness();
     const healthRes = await currentHarness.agent.get('/health');
     expect(healthRes.status).toBe(200);
-    expect(healthRes.body).toEqual({ status: 'ok', version: '0.1.0', application: 'ok' });
+    expect(healthRes.body).toEqual({ status: 'ok', version: resolveAppVersion(), application: 'ok' });
 
     const contentRes = await apiGet('/content');
     expect(contentRes.status).toBe(200);

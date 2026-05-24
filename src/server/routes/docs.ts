@@ -1,5 +1,5 @@
 import { Request, Response, Router } from 'express';
-import { readFileSync } from 'node:fs';
+import { readPackageVersion } from '../../utils/version.js';
 
 const DEFAULT_DOCS_BASE_REPO_URL = 'https://raw.githubusercontent.com/fuba/fuba-browser';
 const DEFAULT_DOCS_REF = 'main';
@@ -46,17 +46,6 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
 }
 
-function readRuntimePackageVersion(): string | null {
-  try {
-    const packageJson = JSON.parse(
-      readFileSync(new URL('../../../package.json', import.meta.url), 'utf-8')
-    ) as { version?: string };
-    return packageJson.version?.trim() || null;
-  } catch {
-    return null;
-  }
-}
-
 function normalizeVersionRef(version: string): string {
   return version.startsWith('v') ? version : `v${version}`;
 }
@@ -72,7 +61,7 @@ function resolveDefaultDocsRef(): string {
     return normalizeVersionRef(appVersion);
   }
 
-  const packageVersion = readRuntimePackageVersion();
+  const packageVersion = readPackageVersion();
   if (packageVersion) {
     return normalizeVersionRef(packageVersion);
   }
