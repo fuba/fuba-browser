@@ -1,5 +1,5 @@
 ---
-name: fuba-recorder-setup
+name: fuba-browser-setup
 description: Set up fuba-browser for browser recording and automation. Detects or starts the container, issues a VNC URL with correct hostname, and shows API/CLI usage. Use when you need a working fuba-browser environment.
 disable-model-invocation: true
 allowed-tools: Bash, Read, Glob, Grep, AskUserQuestion, WebFetch
