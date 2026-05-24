@@ -424,7 +424,7 @@ fuba-browser provides a [Claude Code](https://claude.com/claude-code) skill for 
 
 ### Using the skill in this repo
 
-Clone the repo and run `/fuba-recorder-setup` in Claude Code. It will detect or start the container, issue a VNC URL, and show API/CLI usage.
+Clone the repo and run `/fuba-browser-setup` in Claude Code. It will detect or start the container, issue a VNC URL, and show API/CLI usage.
 
 ### Installing the skill in your own project
 
@@ -432,13 +432,13 @@ Copy or symlink the skill into your project's `.claude/skills/`:
 
 ```bash
 # Symlink (if fuba-browser repo is local)
-ln -s /path/to/fuba-browser/skills/fuba-recorder-setup .claude/skills/fuba-recorder-setup
+ln -s /path/to/fuba-browser/skills/fuba-browser-setup .claude/skills/fuba-browser-setup
 
 # Or copy
-cp -r /path/to/fuba-browser/skills/fuba-recorder-setup .claude/skills/
+cp -r /path/to/fuba-browser/skills/fuba-browser-setup .claude/skills/
 ```
 
-Then run `/fuba-recorder-setup` in Claude Code from your project.
+Then run `/fuba-browser-setup` in Claude Code from your project.
 
 ## Documentation
 
