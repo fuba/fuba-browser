@@ -1,5 +1,5 @@
 ---
-name: fuba-release
+name: fuba-browser-release
 description: |
   fuba-browser 専用のリリースフロー。オープン PR (主に dependabot) をマージし、
   Playwright のアップデートを確認・適用し、バージョンを bump して PR 経由で main を更新、
@@ -161,8 +161,8 @@ Release URL をユーザーに報告する。
 
 ```
 # dependabot PR を捌いて patch リリース
-/fuba-release
+/fuba-browser-release
 
 # minor リリースにする
-/fuba-release --bump=minor
+/fuba-browser-release --bump=minor
 ```
