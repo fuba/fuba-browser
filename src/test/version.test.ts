@@ -34,4 +34,19 @@ describe('resolveAppVersion', () => {
     process.env.APP_VERSION = '9.9.9';
     expect(resolveAppVersion()).toBe('9.9.9');
   });
+
+  it('ignores a blank APP_VERSION and falls back to package.json', () => {
+    process.env.APP_VERSION = '   ';
+    expect(resolveAppVersion()).toBe(actualVersion);
+  });
+
+  it('ignores an APP_VERSION containing control characters', () => {
+    process.env.APP_VERSION = 'evil\r\nInjected: header';
+    expect(resolveAppVersion()).toBe(actualVersion);
+  });
+
+  it('ignores an over-long APP_VERSION', () => {
+    process.env.APP_VERSION = '1'.repeat(65);
+    expect(resolveAppVersion()).toBe(actualVersion);
+  });
 });
