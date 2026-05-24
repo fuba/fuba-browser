@@ -12,6 +12,7 @@ import { TokenStore } from '../../server/token-store.js';
 import { VncPasswordManager } from '../../server/vnc-password-manager.js';
 import { buildWebVncRedirectUrl } from '../../server/index.js';
 import { errorHandler } from '../../server/middleware/error.js';
+import { resolveAppVersion } from '../../utils/version.js';
 
 interface FixtureServer {
   baseUrl: string;
@@ -239,12 +240,14 @@ export async function createOfflineE2EHarness(): Promise<OfflineE2EHarness> {
   app.use(express.json({ limit: BODY_PARSER_LIMIT }));
   app.use(express.urlencoded({ extended: true, limit: BODY_PARSER_LIMIT }));
 
+  const appVersion = resolveAppVersion();
+
   app.get('/health', async (_req, res) => {
     const health = await browserController.checkHealth();
     if (!health.ok) {
       return res.status(503).json({
         status: 'unhealthy',
-        version: '0.1.0',
+        version: appVersion,
         application: 'unavailable',
         error: health.error || 'Application health check failed',
       });
@@ -252,7 +255,7 @@ export async function createOfflineE2EHarness(): Promise<OfflineE2EHarness> {
 
     return res.json({
       status: 'ok',
-      version: '0.1.0',
+      version: appVersion,
       application: 'ok',
     });
   });

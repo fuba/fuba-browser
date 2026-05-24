@@ -14,7 +14,7 @@ Returns the health status of the application, not just HTTP process liveness.
 ```json
 {
   "status": "ok",
-  "version": "0.1.0",
+  "version": "3.4.2",
   "application": "ok"
 }
 ```
@@ -23,7 +23,7 @@ Returns the health status of the application, not just HTTP process liveness.
 ```json
 {
   "status": "unhealthy",
-  "version": "0.1.0",
+  "version": "3.4.2",
   "application": "unavailable",
   "error": "Browser page is closed"
 }
@@ -40,7 +40,7 @@ Returns a service discovery payload with key endpoints and docs hints.
   "success": true,
   "data": {
     "name": "fuba-browser",
-    "version": "0.1.0",
+    "version": "3.4.2",
     "endpoints": {
       "health": "/health",
       "api": "/api",

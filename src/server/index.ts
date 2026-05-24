@@ -9,6 +9,7 @@ import { SetDeviceProfileFn, GetDeviceProfileFn } from './routes/device.js';
 import { TokenStore } from './token-store.js';
 import { VncPasswordManager } from './vnc-password-manager.js';
 import { discoveryRoutes } from './routes/discovery.js';
+import { resolveAppVersion } from '../utils/version.js';
 
 const DEFAULT_VNC_WEB_PORT = 39001;
 const DEFAULT_BODY_PARSER_LIMIT = '20mb';
@@ -99,6 +100,7 @@ export async function startApiServer(
   const app = express();
   const vncWebPort = resolveVncWebPort(process.env.VNC_WEB_PORT);
   const bodyParserLimit = process.env.API_BODY_LIMIT || DEFAULT_BODY_PARSER_LIMIT;
+  const appVersion = resolveAppVersion();
 
   // Middleware
   const corsOptions = resolveCorsOptions(process.env.API_CORS_ORIGINS);
@@ -108,7 +110,7 @@ export async function startApiServer(
   app.use(express.json({ limit: bodyParserLimit }));
   app.use(express.urlencoded({ extended: true, limit: bodyParserLimit }));
 
-  app.use(discoveryRoutes('0.1.0'));
+  app.use(discoveryRoutes(appVersion));
 
   // Health check
   app.get('/health', async (_req: Request, res: Response) => {
@@ -116,7 +118,7 @@ export async function startApiServer(
     if (!health.ok) {
       return res.status(503).json({
         status: 'unhealthy',
-        version: '0.1.0',
+        version: appVersion,
         application: 'unavailable',
         error: health.error || 'Application health check failed',
       });
@@ -124,7 +126,7 @@ export async function startApiServer(
 
     return res.json({
       status: 'ok',
-      version: '0.1.0',
+      version: appVersion,
       application: 'ok',
     });
   });
