@@ -50,7 +50,7 @@ The launcher script automatically pulls the Docker image and manages the contain
 Pull the image from GitHub Container Registry:
 
 ```bash
-docker pull ghcr.io/fuba/fuba-browser:3.4.2
+docker pull ghcr.io/fuba/fuba-browser:3.4.5
 
 # Or use the latest version
 docker pull ghcr.io/fuba/fuba-browser:latest
@@ -64,7 +64,7 @@ docker run -d \
   -p 39000:39000 \
   -p 39001:6080 \
   --shm-size=2g \
-  ghcr.io/fuba/fuba-browser:3.4.2
+  ghcr.io/fuba/fuba-browser:3.4.5
 ```
 
 ### Building from Source
