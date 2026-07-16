@@ -150,17 +150,21 @@ async function resetBrowser(): Promise<void> {
   console.error('[System] Browser reset complete');
 }
 
-// Wraps resetBrowser() with the auto-recovery "expected reset" guard so that
-// manual resets (POST /api/reset, setDeviceProfile) never get misread as a
-// crash by the crash/disconnected handlers attached above, or race the
-// watchdog into starting a second, competing recovery.
+// Routes manual resets (POST /api/reset, setDeviceProfile) through
+// AutoRecovery.requestManualReset(), which (a) applies the "expected reset"
+// guard so they never get misread as a crash by the crash/disconnected
+// handlers attached above, and (b) serializes them against the recovery
+// loop's own reset attempts on the same queue, so a manual reset and an
+// automatic recovery can never run resetBrowser() concurrently and tear the
+// module-level browser/context/page state (see auto-recovery.ts).
 async function guardedResetBrowser(): Promise<void> {
-  autoRecovery?.beginExpectedReset();
-  try {
+  if (!autoRecovery) {
+    // Not initialized yet (shouldn't happen once the API server is up, but
+    // fall back to a plain reset rather than throwing).
     await resetBrowser();
-  } finally {
-    autoRecovery?.endExpectedReset();
+    return;
   }
+  await autoRecovery.requestManualReset();
 }
 
 // Set device profile and reset browser
