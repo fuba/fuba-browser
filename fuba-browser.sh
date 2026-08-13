@@ -111,6 +111,7 @@ parse_start_args() {
     API_PORT="$DEFAULT_API_PORT"
     VNC_WEB_PORT="$DEFAULT_VNC_WEB_PORT"
     VNC_PORT=""  # Not exposed by default
+    GPU_MODE="off"
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -134,12 +135,141 @@ parse_start_args() {
                 IMAGE_TAG="$2"
                 shift 2
                 ;;
+            --gpu)
+                if [[ $# -gt 1 && "$2" != -* ]]; then
+                    GPU_MODE="$2"
+                    shift 2
+                else
+                    GPU_MODE="auto"
+                    shift
+                fi
+                ;;
+            --gpu=*)
+                GPU_MODE="${1#*=}"
+                shift
+                ;;
             *)
                 print_error "Unknown option: $1"
                 exit 1
                 ;;
         esac
     done
+
+    case "$GPU_MODE" in
+        off|auto|nvidia|amd) ;;
+        *)
+            print_error "Unsupported GPU mode '${GPU_MODE}'. Use auto, nvidia, or amd."
+            return 1
+            ;;
+    esac
+}
+
+# Select a vendor only when the host exposes an unambiguous supported GPU.
+resolve_gpu_mode() {
+    local requested="$1"
+    shift
+    local vendors=("$@")
+
+    if [ "$requested" = "off" ]; then
+        printf '%s\n' off
+        return 0
+    fi
+    if [ "$requested" != "auto" ]; then
+        local vendor
+        for vendor in "${vendors[@]}"; do
+            if [ "$vendor" = "$requested" ]; then
+                printf '%s\n' "$requested"
+                return 0
+            fi
+        done
+        print_error "Requested ${requested^^} GPU was not detected."
+        return 1
+    fi
+    if [ "${#vendors[@]}" -eq 0 ]; then
+        print_error "No supported NVIDIA or AMD GPU was detected."
+        return 1
+    fi
+    if [ "${#vendors[@]}" -gt 1 ]; then
+        print_error "Both NVIDIA and AMD GPUs were detected. Use --gpu nvidia or --gpu amd."
+        return 1
+    fi
+
+    printf '%s\n' "${vendors[0]}"
+}
+
+detect_gpu_vendors() {
+    local has_nvidia=false
+    local has_amd=false
+    local vendor_file vendor
+
+    if command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L >/dev/null 2>&1; then
+        has_nvidia=true
+    fi
+    for vendor_file in /sys/class/drm/card[0-9]*/device/vendor /sys/class/drm/renderD[0-9]*/device/vendor; do
+        [ -r "$vendor_file" ] || continue
+        vendor=$(tr '[:upper:]' '[:lower:]' < "$vendor_file")
+        case "$vendor" in
+            0x10de) has_nvidia=true ;;
+            0x1002) has_amd=true ;;
+        esac
+    done
+
+    [ "$has_nvidia" = true ] && printf '%s\n' nvidia
+    [ "$has_amd" = true ] && printf '%s\n' amd
+}
+
+find_amd_render_devices() {
+    local drm_path vendor_file vendor device_path
+
+    for drm_path in /sys/class/drm/renderD[0-9]*; do
+        [ -e "$drm_path" ] || continue
+        vendor_file="$drm_path/device/vendor"
+        [ -r "$vendor_file" ] || continue
+        vendor=$(tr '[:upper:]' '[:lower:]' < "$vendor_file")
+        [ "$vendor" = "0x1002" ] || continue
+        device_path="/dev/dri/$(basename "$drm_path")"
+        [ -e "$device_path" ] && printf '%s\n' "$device_path"
+    done
+}
+
+configure_gpu_docker_args() {
+    local mode="$1"
+    GPU_DOCKER_ARGS=(-e "FUBA_GPU_MODE=${mode}")
+
+    case "$mode" in
+        nvidia)
+            GPU_DOCKER_ARGS+=(
+                --gpus all
+                -e NVIDIA_DRIVER_CAPABILITIES=graphics,utility,display
+                -e __NV_PRIME_RENDER_OFFLOAD=1
+                -e __GLX_VENDOR_LIBRARY_NAME=nvidia
+            )
+            ;;
+        amd)
+            local devices=()
+            local gids=()
+            local device gid existing_gid known_gid
+            mapfile -t devices < <(find_amd_render_devices)
+            if [ "${#devices[@]}" -eq 0 ]; then
+                print_error "AMD GPU mode requires an AMD /dev/dri device."
+                return 1
+            fi
+
+            for device in "${devices[@]}"; do
+                GPU_DOCKER_ARGS+=(--device "$device")
+                gid=$(stat -c '%g' "$device")
+                known_gid=false
+                for existing_gid in "${gids[@]}"; do
+                    [ "$existing_gid" = "$gid" ] && known_gid=true
+                done
+                if [ "$known_gid" = false ]; then
+                    gids+=("$gid")
+                    GPU_DOCKER_ARGS+=(--group-add "$gid")
+                fi
+            done
+            GPU_DOCKER_ARGS+=(-e DRI_PRIME=1)
+            ;;
+    esac
 }
 
 # Start the container
@@ -174,15 +304,32 @@ start_container() {
     print_info "Starting container '${CONTAINER_NAME}'..."
 
     # Build port arguments
-    local port_args="-p ${API_PORT}:39000 -p ${VNC_WEB_PORT}:6080"
+    local port_args=(-p "${API_PORT}:39000" -p "${VNC_WEB_PORT}:6080")
     if [ -n "$VNC_PORT" ]; then
-        port_args="$port_args -p ${VNC_PORT}:5900"
+        port_args+=(-p "${VNC_PORT}:5900")
+    fi
+
+    local gpu_mode="$GPU_MODE"
+    if [ "$gpu_mode" != "off" ]; then
+        local detected_vendors=()
+        local resolve_output
+        mapfile -t detected_vendors < <(detect_gpu_vendors)
+        if ! resolve_output=$(resolve_gpu_mode "$gpu_mode" "${detected_vendors[@]}"); then
+            printf '%s\n' "$resolve_output"
+            return 1
+        fi
+        gpu_mode="$resolve_output"
+        configure_gpu_docker_args "$gpu_mode"
+        print_info "Using ${gpu_mode} GPU acceleration"
+    else
+        GPU_DOCKER_ARGS=()
     fi
 
     docker run -d \
         --name "${CONTAINER_NAME}" \
-        $port_args \
+        "${port_args[@]}" \
         --shm-size="${SHM_SIZE}" \
+        "${GPU_DOCKER_ARGS[@]}" \
         "${IMAGE_NAME}:${IMAGE_TAG}"
 
     print_success "Container started successfully"
@@ -409,6 +556,7 @@ Options for start/restart/update:
   -w, --vnc-web-port <port> Web VNC port (default: 39001)
   -v, --vnc-port <port>     VNC port (not exposed by default)
   -t, --tag <tag>           Image tag (default: latest)
+      --gpu [mode]          Enable hardware GPU: auto, nvidia, or amd
 
 Environment Variables:
   FBB_IMAGE         Image name (default: ghcr.io/fuba/fuba-browser)
@@ -427,6 +575,11 @@ Examples:
   # Start with VNC port exposed
   fuba-browser start -v 5900
 
+  # Enable GPU acceleration (auto-detect, or select a vendor explicitly)
+  fuba-browser start --gpu
+  fuba-browser start --gpu nvidia
+  fuba-browser start --gpu amd
+
   # Use specific version
   fuba-browser start -t 1.0.0
 
@@ -444,6 +597,7 @@ EOF
 }
 
 # Main
+main() {
 case "${1:-}" in
     start)
         shift
@@ -491,3 +645,8 @@ case "${1:-}" in
         exit 1
         ;;
 esac
+}
+
+if [ "${FBB_SOURCE_ONLY:-false}" != "true" ]; then
+    main "$@"
+fi
