@@ -143,16 +143,14 @@ docker run -d --name fuba-browser \
   ghcr.io/fuba/fuba-browser:latest
 ```
 
-For AMD, pass the DRM devices and the host's DRM group ID. The render-device
+For AMD, pass its DRM render node and the host's render group ID. The render-device
 path can vary by host:
 
 ```bash
 AMD_RENDER_GID="$(stat -c '%g' /dev/dri/renderD128)"
-AMD_CARD_GID="$(stat -c '%g' /dev/dri/card0)"
 docker run -d --name fuba-browser \
-  --device /dev/dri:/dev/dri \
+  --device /dev/dri/renderD128 \
   --group-add "$AMD_RENDER_GID" \
-  --group-add "$AMD_CARD_GID" \
   -e DRI_PRIME=1 \
   -e FUBA_GPU_MODE=amd \
   -p 39000:39000 -p 39001:6080 --shm-size=2g \
@@ -160,7 +158,7 @@ docker run -d --name fuba-browser \
 ```
 
 If the host uses a different render node, substitute that node in the
-`stat` commands. The launcher performs this device and GID mapping automatically.
+`stat` command. The launcher performs this device and GID mapping automatically.
 
 ## Security / Threat Model
 

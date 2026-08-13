@@ -134,11 +134,9 @@ docker run -d --name fuba-browser \
 
 # AMD (the DRM group ID must come from the host)
 AMD_RENDER_GID="$(stat -c '%g' /dev/dri/renderD128)"
-AMD_CARD_GID="$(stat -c '%g' /dev/dri/card0)"
 docker run -d --name fuba-browser \
-  --device /dev/dri:/dev/dri \
+  --device /dev/dri/renderD128 \
   --group-add "$AMD_RENDER_GID" \
-  --group-add "$AMD_CARD_GID" \
   -e DRI_PRIME=1 \
   -e FUBA_GPU_MODE=amd \
   -p 39000:39000 -p 39001:6080 --shm-size=2g \
@@ -146,8 +144,8 @@ docker run -d --name fuba-browser \
 ```
 
 Use the actual `/dev/dri/renderD*` node present on the host when calculating
-the group IDs. The launcher automatically finds the AMD card/render devices
-and passes their device files and group IDs to Docker.
+the group ID. The launcher automatically finds the AMD render nodes and passes
+their device files and group IDs to Docker.
 
 ### Option 2: Using Docker Directly
 

@@ -13,7 +13,6 @@ const GPU_LAUNCH_ARGS = [
   '--use-angle=vulkan',
   '--enable-features=Vulkan',
   '--disable-gpu-blocklist',
-  '--enable-unsafe-webgpu',
 ] as const;
 
 const SOFTWARE_RENDERER_MARKERS = [

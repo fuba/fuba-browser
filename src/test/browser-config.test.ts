@@ -226,7 +226,6 @@ describe('getBrowserConfig', () => {
         '--use-angle=vulkan',
         '--enable-features=Vulkan',
         '--disable-gpu-blocklist',
-        '--enable-unsafe-webgpu',
       ];
 
       expect(getGpuLaunchArgs('off')).toEqual([]);

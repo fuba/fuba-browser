@@ -218,10 +218,10 @@ detect_gpu_vendors() {
     [ "$has_amd" = true ] && printf '%s\n' amd
 }
 
-find_amd_dri_devices() {
+find_amd_render_devices() {
     local drm_path vendor_file vendor device_path
 
-    for drm_path in /sys/class/drm/card[0-9]* /sys/class/drm/renderD[0-9]*; do
+    for drm_path in /sys/class/drm/renderD[0-9]*; do
         [ -e "$drm_path" ] || continue
         vendor_file="$drm_path/device/vendor"
         [ -r "$vendor_file" ] || continue
@@ -249,7 +249,7 @@ configure_gpu_docker_args() {
             local devices=()
             local gids=()
             local device gid existing_gid known_gid
-            mapfile -t devices < <(find_amd_dri_devices)
+            mapfile -t devices < <(find_amd_render_devices)
             if [ "${#devices[@]}" -eq 0 ]; then
                 print_error "AMD GPU mode requires an AMD /dev/dri device."
                 return 1

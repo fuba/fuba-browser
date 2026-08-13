@@ -61,4 +61,16 @@ describe('fuba-browser GPU launcher options', () => {
     expect(result.status).not.toBe(0);
     expect(result.stdout + result.stderr).toContain('Both NVIDIA and AMD GPUs were detected');
   });
+
+  it('passes only AMD render nodes into the container', () => {
+    const args = runShell(`
+      source "$LAUNCHER_PATH"
+      find_amd_render_devices() { printf '%s\\n' /dev/null; }
+      configure_gpu_docker_args amd
+      printf '%s\\n' "\${GPU_DOCKER_ARGS[@]}"
+    `);
+
+    expect(args).toContain('/dev/null');
+    expect(args).not.toContain('/dev/dri/card');
+  });
 });
