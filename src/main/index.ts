@@ -3,7 +3,7 @@ import { startApiServer } from '../server/index.js';
 import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { PageManager } from '../browser/page-manager.js';
-import { getBrowserConfig } from '../config/browser-config.js';
+import { getBrowserConfig, getGpuLaunchArgs, isGpuRendererCompatible } from '../config/browser-config.js';
 import { resolveDeviceProfile } from '../config/device-profiles.js';
 import { VncPasswordManager } from '../server/vnc-password-manager.js';
 import { buildChromeUserAgent } from './user-agent.js';
@@ -21,7 +21,7 @@ let autoRecovery: AutoRecovery | null = null;
 
 // Initialize browser, context, page, and page manager
 async function initializeBrowser() {
-  const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy } = getBrowserConfig();
+  const { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy, gpuMode } = getBrowserConfig();
 
   // Resolve device profile for context options
   const deviceOptions = resolveDeviceProfile(currentDeviceProfile);
@@ -37,6 +37,7 @@ async function initializeBrowser() {
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-blink-features=AutomationControlled',
+      ...getGpuLaunchArgs(gpuMode),
     ],
   };
 
@@ -83,6 +84,31 @@ async function initializeBrowser() {
 
   // Navigate to blank page
   await page.goto('about:blank');
+
+  if (gpuMode !== 'off') {
+    const renderer = await page.evaluate(() => {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+      if (!gl) {
+        return '';
+      }
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      return debugInfo
+        ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL))
+        : String(gl.getParameter(gl.RENDERER));
+    });
+
+    if (!isGpuRendererCompatible(gpuMode, renderer)) {
+      await page.close().catch(() => {});
+      await context.close().catch(() => {});
+      await browser.close().catch(() => {});
+      page = null;
+      context = null;
+      browser = null;
+      throw new Error(`Requested GPU mode '${gpuMode}' but Chromium reported an incompatible renderer: ${renderer || 'unavailable'}`);
+    }
+    console.error(`[System] GPU renderer: ${renderer}`);
+  }
 
   console.error('[System] Browser initialized');
 

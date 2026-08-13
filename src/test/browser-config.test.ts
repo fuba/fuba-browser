@@ -1,5 +1,10 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { getBrowserConfig } from '../config/browser-config.js';
+import {
+  getBrowserConfig,
+  getGpuLaunchArgs,
+  isHardwareRenderer,
+  isGpuRendererCompatible,
+} from '../config/browser-config.js';
 
 describe('getBrowserConfig', () => {
   const originalEnv = process.env;
@@ -188,6 +193,68 @@ describe('getBrowserConfig', () => {
     });
   });
 
+  describe('GPU mode', () => {
+    it('should default to off', () => {
+      delete process.env.FUBA_GPU_MODE;
+      const config = getBrowserConfig();
+      expect(config.gpuMode).toBe('off');
+    });
+
+    it('should accept auto mode from FUBA_GPU_MODE', () => {
+      process.env.FUBA_GPU_MODE = 'auto';
+      expect(getBrowserConfig().gpuMode).toBe('auto');
+    });
+
+    it('should accept nvidia as an alias for hardware mode', () => {
+      process.env.FUBA_GPU_MODE = 'nvidia';
+      expect(getBrowserConfig().gpuMode).toBe('nvidia');
+    });
+
+    it('should accept amd mode', () => {
+      process.env.FUBA_GPU_MODE = 'amd';
+      expect(getBrowserConfig().gpuMode).toBe('amd');
+    });
+
+    it('should reject an unsupported mode instead of silently disabling GPU acceleration', () => {
+      process.env.FUBA_GPU_MODE = 'hardware';
+      expect(() => getBrowserConfig()).toThrow("Unsupported FUBA_GPU_MODE 'hardware'");
+    });
+
+    it('should only add Chromium GPU flags for hardware modes', () => {
+      const expected = [
+        '--use-gl=angle',
+        '--use-angle=vulkan',
+        '--enable-features=Vulkan',
+        '--disable-gpu-blocklist',
+        '--enable-unsafe-webgpu',
+      ];
+
+      expect(getGpuLaunchArgs('off')).toEqual([]);
+      expect(getGpuLaunchArgs('auto')).toEqual(expected);
+      expect(getGpuLaunchArgs('nvidia')).toEqual(expected);
+      expect(getGpuLaunchArgs('amd')).toEqual(expected);
+    });
+
+    it('should classify SwiftShader and llvmpipe as software renderers', () => {
+      expect(isHardwareRenderer('ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device), SwiftShader driver)')).toBe(false);
+      expect(isHardwareRenderer('llvmpipe (LLVM 18.1.3, 256 bits)')).toBe(false);
+      expect(isHardwareRenderer('ANGLE (NVIDIA, Vulkan 1.4.312 (NVIDIA GeForce RTX 5060 Ti), NVIDIA)')).toBe(true);
+    });
+
+    it('should require a hardware renderer for auto mode', () => {
+      expect(isGpuRendererCompatible('auto', 'llvmpipe (LLVM 18.1.3, 256 bits)')).toBe(false);
+      expect(isGpuRendererCompatible('auto', 'ANGLE (AMD, Vulkan 1.3.0 (AMD Radeon), AMD)')).toBe(true);
+      expect(isGpuRendererCompatible('auto', 'ANGLE (Unknown, Vulkan 1.3.0, Unknown)')).toBe(false);
+    });
+
+    it('should fail vendor mismatches for explicit modes', () => {
+      expect(isGpuRendererCompatible('nvidia', 'ANGLE (NVIDIA, Vulkan 1.4 (GeForce), NVIDIA)')).toBe(true);
+      expect(isGpuRendererCompatible('nvidia', 'ANGLE (AMD, Vulkan 1.3 (Radeon), AMD)')).toBe(false);
+      expect(isGpuRendererCompatible('amd', 'ANGLE (AMD, Vulkan 1.3 (Radeon), AMD)')).toBe(true);
+      expect(isGpuRendererCompatible('amd', 'ANGLE (NVIDIA, Vulkan 1.4 (GeForce), NVIDIA)')).toBe(false);
+    });
+  });
+
   describe('combined configuration', () => {
     it('should return all settings correctly when all env vars are set', () => {
       process.env.HEADLESS = 'false';
@@ -206,6 +273,7 @@ describe('getBrowserConfig', () => {
         timezoneId: 'Europe/Paris',
         viewportWidth: 1920,
         viewportHeight: 1080,
+        gpuMode: 'off',
       });
     });
 
@@ -228,6 +296,7 @@ describe('getBrowserConfig', () => {
         timezoneId: 'Europe/Paris',
         viewportWidth: 1920,
         viewportHeight: 1080,
+        gpuMode: 'off',
         proxy: {
           server: 'http://localhost:13128',
           bypass: 'localhost',
