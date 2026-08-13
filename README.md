@@ -112,7 +112,55 @@ fuba-browser start -n browser2 -p 39100 -w 39101
 
 # With VNC port exposed
 fuba-browser start -v 5900
+
+# Enable hardware WebGL/WebGPU (auto-detect one supported GPU)
+fuba-browser start --gpu
+fuba-browser start --gpu nvidia
+fuba-browser start --gpu amd
 ```
+
+### Hardware GPU acceleration
+
+Hardware acceleration is off by default. Use `--gpu` to enable Chromium's
+ANGLE/Vulkan path. A bare `--gpu` detects NVIDIA or AMD on Linux; if both are
+present, specify `--gpu nvidia` or `--gpu amd` explicitly. The launcher passes
+only the selected vendor's devices into the container.
+
+NVIDIA requires a working NVIDIA driver and NVIDIA Container Toolkit. AMD
+requires `/dev/dri` and Mesa Vulkan support. At startup fuba-browser checks the
+actual Chromium WebGL renderer and exits if it is a software fallback or does
+not match the requested vendor. WebGL 1 and WebGL 2 are available; WebGPU is
+available from secure origins when supported by the selected driver.
+
+For direct Docker usage, NVIDIA needs the NVIDIA Container Toolkit:
+
+```bash
+docker run -d --name fuba-browser \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=graphics,utility,display \
+  -e FUBA_GPU_MODE=nvidia \
+  -p 39000:39000 -p 39001:6080 --shm-size=2g \
+  ghcr.io/fuba/fuba-browser:latest
+```
+
+For AMD, pass the DRM devices and the host's DRM group ID. The render-device
+path can vary by host:
+
+```bash
+AMD_RENDER_GID="$(stat -c '%g' /dev/dri/renderD128)"
+AMD_CARD_GID="$(stat -c '%g' /dev/dri/card0)"
+docker run -d --name fuba-browser \
+  --device /dev/dri:/dev/dri \
+  --group-add "$AMD_RENDER_GID" \
+  --group-add "$AMD_CARD_GID" \
+  -e DRI_PRIME=1 \
+  -e FUBA_GPU_MODE=amd \
+  -p 39000:39000 -p 39001:6080 --shm-size=2g \
+  ghcr.io/fuba/fuba-browser:latest
+```
+
+If the host uses a different render node, substitute that node in the
+`stat` commands. The launcher performs this device and GID mapping automatically.
 
 ## Security / Threat Model
 

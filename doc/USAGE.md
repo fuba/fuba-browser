@@ -41,6 +41,7 @@ Options for `start`, `restart`, and `update`:
 -w, --vnc-web-port <port> # Web VNC port (default: 39001)
 -v, --vnc-port <port>     # VNC port (not exposed by default)
 -t, --tag <tag>           # Image tag (default: latest)
+    --gpu [mode]          # Hardware GPU: auto, nvidia, or amd (default: off)
 ```
 
 #### Multiple Instances
@@ -100,7 +101,53 @@ FBB_AUTO_UPDATE=false fuba-browser start
 
 # Use specific version via environment
 FBB_TAG=3.4.2 fuba-browser start
+
+# Enable hardware GPU acceleration
+fuba-browser start --gpu          # Auto-detect one NVIDIA or AMD GPU
+fuba-browser start --gpu nvidia   # Select NVIDIA explicitly
+fuba-browser start --gpu amd      # Select AMD explicitly
 ```
+
+### Hardware GPU acceleration
+
+GPU acceleration is optional and disabled by default. `--gpu` selects the
+hardware ANGLE/Vulkan path and maps the selected GPU into the container. Auto
+mode fails when both NVIDIA and AMD are detected; use an explicit vendor in
+that case.
+
+NVIDIA hosts need an installed NVIDIA driver and NVIDIA Container Toolkit. AMD
+hosts need `/dev/dri` and Mesa Vulkan support. Chromium's actual WebGL renderer
+is checked during startup: software renderers and vendor mismatches cause
+startup to fail instead of silently falling back. WebGL 1 and WebGL 2 are
+supported, and WebGPU is available on secure origins when the driver supports it.
+
+The equivalent direct Docker invocations are:
+
+```bash
+# NVIDIA (requires NVIDIA Container Toolkit)
+docker run -d --name fuba-browser \
+  --gpus all \
+  -e NVIDIA_DRIVER_CAPABILITIES=graphics,utility,display \
+  -e FUBA_GPU_MODE=nvidia \
+  -p 39000:39000 -p 39001:6080 --shm-size=2g \
+  ghcr.io/fuba/fuba-browser:latest
+
+# AMD (the DRM group ID must come from the host)
+AMD_RENDER_GID="$(stat -c '%g' /dev/dri/renderD128)"
+AMD_CARD_GID="$(stat -c '%g' /dev/dri/card0)"
+docker run -d --name fuba-browser \
+  --device /dev/dri:/dev/dri \
+  --group-add "$AMD_RENDER_GID" \
+  --group-add "$AMD_CARD_GID" \
+  -e DRI_PRIME=1 \
+  -e FUBA_GPU_MODE=amd \
+  -p 39000:39000 -p 39001:6080 --shm-size=2g \
+  ghcr.io/fuba/fuba-browser:latest
+```
+
+Use the actual `/dev/dri/renderD*` node present on the host when calculating
+the group IDs. The launcher automatically finds the AMD card/render devices
+and passes their device files and group IDs to Docker.
 
 ### Option 2: Using Docker Directly
 
