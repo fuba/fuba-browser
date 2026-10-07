@@ -14,10 +14,10 @@
   },
   "dependencies": {
     "commander": "^15.0.0",
-    "chalk": "^6.0.0"
+    "chalk": "^6.0.1"
   },
   "devDependencies": {
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.6.4",
     "typescript": "^7.0.2"
   },
   "engines": {
