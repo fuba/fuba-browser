@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
-import { systemRoutes } from '../server/routes/system.js';
+import { systemRoutes, ResetBrowserFn } from '../server/routes/system.js';
 
 describe('System Routes', () => {
   let app: express.Express;
-  let mockResetBrowser: ReturnType<typeof vi.fn>;
+  let mockResetBrowser: ReturnType<typeof vi.fn<ResetBrowserFn>>;
 
   beforeEach(() => {
     app = express();

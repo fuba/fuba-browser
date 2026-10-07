@@ -29,7 +29,7 @@ function findRefBySelector(snapshot: Snapshot, selector: string): string {
   return entry[0];
 }
 
-describe.sequential('Offline API E2E', () => {
+describe('Offline API E2E', () => {
   let harness: OfflineE2EHarness | null = null;
 
   const requireHarness = (): OfflineE2EHarness => {

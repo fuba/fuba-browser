@@ -4,8 +4,8 @@ import { AutoRecovery, AutoRecoveryHealthResult } from '../main/auto-recovery.js
 describe('AutoRecovery', () => {
   let reset: ReturnType<typeof vi.fn<() => Promise<void>>>;
   let checkHealth: ReturnType<typeof vi.fn<() => Promise<AutoRecoveryHealthResult>>>;
-  let onFatal: ReturnType<typeof vi.fn>;
-  let log: ReturnType<typeof vi.fn>;
+  let onFatal: ReturnType<typeof vi.fn<(message: string) => void>>;
+  let log: ReturnType<typeof vi.fn<(message: string) => void>>;
 
   beforeEach(() => {
     vi.useFakeTimers();
