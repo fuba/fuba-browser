@@ -1,4 +1,4 @@
-FROM node:26-slim
+FROM node:26.12.1-slim
 
 # Install dependencies for Playwright Chromium & VNC
 RUN apt-get update && apt-get install -y \
@@ -18,6 +18,7 @@ RUN apt-get update && apt-get install -y \
     libgtk-3-0 \
     libnspr4 \
     libnss3 \
+    libnss3-tools \
     libxcomposite1 \
     libxdamage1 \
     libxfixes3 \
@@ -68,6 +69,9 @@ COPY docker/start-vnc.sh /usr/local/bin/start-vnc.sh
 RUN chmod +x /usr/local/bin/start-vnc.sh
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
+COPY docker/blocked-ca /usr/share/fuba-browser/blocked-ca
+COPY docker/install-ca-distrust.sh /usr/local/bin/install-ca-distrust
+RUN chmod +x /usr/local/bin/install-ca-distrust
 
 # Copy fontconfig to prioritize Noto Sans CJK JP
 COPY docker/fonts.conf /etc/fonts/conf.d/99-noto-cjk-jp.conf
@@ -81,6 +85,7 @@ RUN chown -R app:app /app
 
 # Switch to app user
 USER app
+ENV HOME=/home/app
 
 # Expose ports
 EXPOSE 39000 5900 6080

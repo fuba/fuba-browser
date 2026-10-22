@@ -8,6 +8,7 @@ import { resolveDeviceProfile } from '../config/device-profiles.js';
 import { VncPasswordManager } from '../server/vnc-password-manager.js';
 import { buildChromeUserAgent } from './user-agent.js';
 import { AutoRecovery } from './auto-recovery.js';
+import { createVerifiedBrowserContext } from '../browser/context-security.js';
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
@@ -59,7 +60,6 @@ async function initializeBrowser() {
     ? {
         ...deviceOptions,
         acceptDownloads: true,
-        ignoreHTTPSErrors: true,
         locale,
         timezoneId,
       }
@@ -68,12 +68,11 @@ async function initializeBrowser() {
         viewport: { width: viewportWidth, height: viewportHeight },
         deviceScaleFactor,
         acceptDownloads: true,
-        ignoreHTTPSErrors: true,
         locale,
         timezoneId,
       };
 
-  context = await browser.newContext(contextOptions);
+  context = await createVerifiedBrowserContext(browser, contextOptions);
 
   // Create the main page
   page = await context.newPage();

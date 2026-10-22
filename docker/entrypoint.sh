@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
+# Chromium has its own root store; local NSS distrust must be set before launch.
+/usr/local/bin/install-ca-distrust
+
 # Create VNC password file with two random passwords before any services start.
 # x11vnc requires at least one valid password line to start.
 # Writing two lines from the start matches the runtime format that VncPasswordManager
