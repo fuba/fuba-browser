@@ -1,4 +1,4 @@
-FROM node:26.12.1-slim
+FROM node:26.13.0-slim
 
 # Install dependencies for Playwright Chromium & VNC
 RUN apt-get update && apt-get install -y \
