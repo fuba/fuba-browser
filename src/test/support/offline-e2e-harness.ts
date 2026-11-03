@@ -191,6 +191,7 @@ function isAllowedRequest(urlText: string): boolean {
 async function createBrowserSession(): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
   const browser = await chromium.launch({
     headless: true,
+    executablePath: process.env.FUBA_BROWSER_EXECUTABLE_PATH || undefined,
     args: ['--no-sandbox', '--disable-setuid-sandbox'],
   });
 

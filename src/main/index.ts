@@ -9,6 +9,7 @@ import { VncPasswordManager } from '../server/vnc-password-manager.js';
 import { buildChromeUserAgent } from './user-agent.js';
 import { AutoRecovery } from './auto-recovery.js';
 import { createVerifiedBrowserContext } from '../browser/context-security.js';
+import { assertSecureBrowserVersion } from '../config/browser-security.js';
 
 let browser: Browser | null = null;
 let context: BrowserContext | null = null;
@@ -33,6 +34,7 @@ async function initializeBrowser() {
   // Build launch options
   const launchOptions: Parameters<typeof chromium.launch>[0] = {
     headless,
+    executablePath: process.env.FUBA_BROWSER_EXECUTABLE_PATH || undefined,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -50,6 +52,14 @@ async function initializeBrowser() {
 
   // Launch browser
   browser = await chromium.launch(launchOptions);
+  try {
+    assertSecureBrowserVersion(browser.version());
+  } catch (error) {
+    await browser.close();
+    browser = null;
+    throw error;
+  }
+  console.error(`[System] Chromium version: ${browser.version()}`);
 
   // Build a desktop User-Agent that matches the running Chromium major version,
   // so UA / Sec-CH-UA stay consistent and bot-detection heuristics don't flag us.

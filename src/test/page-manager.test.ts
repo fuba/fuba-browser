@@ -9,7 +9,7 @@ describe('PageManager', () => {
   let pageManager: PageManager;
 
   beforeAll(async () => {
-    browser = await chromium.launch({ headless: true });
+    browser = await chromium.launch({ headless: true, executablePath: process.env.FUBA_BROWSER_EXECUTABLE_PATH || undefined });
     context = await browser.newContext();
     page = await context.newPage();
     pageManager = new PageManager(context, page);

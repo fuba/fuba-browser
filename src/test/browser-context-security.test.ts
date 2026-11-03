@@ -18,7 +18,7 @@ describe('Browser TLS verification', () => {
       '-subj', '/CN=127.0.0.1', '-addext', 'subjectAltName=IP:127.0.0.1', '-keyout', key, '-out', cert], { stdio: 'ignore' });
     const secure = https.createServer({ key: readFileSync(key), cert: readFileSync(cert) }, (_req, res) => res.end('ok'));
     const plain = http.createServer((_req, res) => res.end('ok'));
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch({ headless: true, executablePath: process.env.FUBA_BROWSER_EXECUTABLE_PATH || undefined });
     try {
       await Promise.all([secure, plain].map(server => new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve))));
       const context = await createVerifiedBrowserContext(browser, { ignoreHTTPSErrors: true });
