@@ -3,6 +3,7 @@ FROM node:26.12.1-slim
 # Install dependencies for Playwright Chromium & VNC
 RUN apt-get update && apt-get install -y \
     wget \
+    unzip \
     gnupg \
     ca-certificates \
     fonts-liberation \
@@ -45,19 +46,17 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Pin Playwright browser path before install so npm ci's postinstall and the
-# explicit `playwright install` below land in the same directory.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+# Browser downloads are handled by the pinned installer below.
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install dependencies (no automatic browser download — handled below).
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --min-release-age=1
 
-# Install Chromium explicitly to the shared path. System libs are already
-# provided by the apt-get block above, so we skip `install-deps`.
-RUN mkdir -p /opt/playwright-browsers && \
-    npx playwright install chromium && \
-    chmod -R 755 /opt/playwright-browsers
+# Playwright's bundled browser can lag security releases. Install the reviewed
+# stable Chrome for Testing artifact independently, verifying both architectures.
+COPY docker/install-chrome.sh /usr/local/bin/install-chrome
+RUN sh /usr/local/bin/install-chrome
+ENV FUBA_BROWSER_EXECUTABLE_PATH=/opt/chrome/chrome
 
 # Copy built application
 COPY dist ./dist

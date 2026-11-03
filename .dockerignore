@@ -15,5 +15,7 @@ docker-compose.yml
 .idea/
 *.log
 logs/
+tmp/
+temp/
 coverage/
 .nyc_output/

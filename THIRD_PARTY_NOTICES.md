@@ -75,8 +75,11 @@ Source packages are available from the Debian archive: https://packages.debian.o
 - **Chromium License:** BSD-style (Chromium license)
 - **Playwright Project:** https://github.com/microsoft/playwright
 - **Chromium Project:** https://www.chromium.org/
-- **Description:** Browser automation library and bundled Chromium browser engine
-- **Source:** Installed via `npx playwright install chromium`.
+- **Description:** Browser automation library and Chrome for Testing browser engine
+- **Source:** Chrome for Testing stable 156.0.8078.80, installed from Google's
+  versioned artifacts with SHA-256 verification by `docker/install-chrome.sh`.
+- **Browser notices:** `/opt/chrome/ABOUT` and other license files shipped in the
+  original distribution are preserved in the image.
 
 ---
 
