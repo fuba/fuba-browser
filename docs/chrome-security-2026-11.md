@@ -54,3 +54,31 @@ Sources:
 - https://raw.githubusercontent.com/microsoft/playwright/v1.64.1/packages/playwright-core/browsers.json
 - https://registry.npmjs.org/playwright
 - https://registry.npmjs.org/playwright-core
+
+## Rollout completed (2026-11-04 JST)
+
+PR #241 was merged as `363fc9e7a66b3a59478a789fdbc395a7f4ca0c28` after
+resolving dependency conflicts with main and rerunning all 200 tests, lint,
+typecheck, and build. The deployed base image was rebuilt from that merged
+revision (`sha256:ab55d18e14d66db427b755caa0b2ed583c63168fd9ee6d873469b9736bc54383`).
+
+All twelve previously inspected local browser containers now run Chrome for
+Testing 156.0.8078.80. Their original port bindings, networks, mounts, restart
+policies, and resource settings were checked against saved Docker inspection
+records. Eleven REST API health checks passed; the dedicated persistent-profile
+monitor passed its health check and authenticated probe with HTTP 200.
+
+Cookies and current-origin Web Storage were backed up and restored for the
+REST instances. Two IndexedDB databases were additionally restored for the
+active DLsite browser. Its collector was paused between browser capture and
+local processing, then resumed and progressed to the next work. Watcher jobs
+were also resumed. The monitor retained its persistent state volume and custom
+program, with an explicit patched executable and the same version baseline.
+Stale Chromium singleton links from its stopped predecessor were removed before
+starting the new persistent profile.
+
+The twelve old containers remain stopped as rollback copies. Deployment uses
+locally built images; operational snapshots, private state, and detailed logs
+are stored in the ignored `tmp/chrome-security/rollout/` directory. Original
+Compose source files in other projects were not edited, so future recreation
+must explicitly select these patched images or a newer patched build.
