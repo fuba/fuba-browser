@@ -7,6 +7,8 @@ import { getBrowserConfig, getGpuLaunchArgs, isGpuRendererCompatible } from '../
 import { resolveDeviceProfile } from '../config/device-profiles.js';
 import { VncPasswordManager } from '../server/vnc-password-manager.js';
 import { buildChromeUserAgent } from './user-agent.js';
+import { deriveBrowserIdentity, type BrowserIdentity } from '../browser/identity.js';
+import { launchIdentityChromium, configureIdentityContext } from '../browser/identity-browser.js';
 import { AutoRecovery } from './auto-recovery.js';
 import { createVerifiedBrowserContext } from '../browser/context-security.js';
 import { assertSecureBrowserVersion } from '../config/browser-security.js';
@@ -19,6 +21,9 @@ let snapshotGenerator: SnapshotGenerator | null = null;
 let pageManager: PageManager | null = null;
 let vncPasswordManager: VncPasswordManager | null = null;
 let currentDeviceProfile: string | null = null;
+let appliedDeviceProfile: string | null = null;
+let customUserAgent: string | null = process.env.FUBA_BROWSER_USER_AGENT ?? null;
+let currentIdentity: BrowserIdentity;
 let autoRecovery: AutoRecovery | null = null;
 
 // Initialize browser, context, page, and page manager
@@ -51,77 +56,89 @@ async function initializeBrowser() {
   }
 
   // Launch browser
-  browser = await chromium.launch(launchOptions);
+  const launched = await launchIdentityChromium(launchOptions, version => {
+    assertSecureBrowserVersion(version);
+    return deriveBrowserIdentity(customUserAgent ?? deviceOptions?.userAgent ?? buildChromeUserAgent(version));
+  });
+  browser = launched.browser;
   try {
-    assertSecureBrowserVersion(browser.version());
-  } catch (error) {
-    await browser.close();
-    browser = null;
-    throw error;
-  }
-  console.error(`[System] Chromium version: ${browser.version()}`);
+    console.error(`[System] Chromium version: ${browser.version()}`);
 
-  // Build a desktop User-Agent that matches the running Chromium major version,
-  // so UA / Sec-CH-UA stay consistent and bot-detection heuristics don't flag us.
-  const desktopUserAgent = buildChromeUserAgent(browser.version());
+    const { identity, bridge } = launched;
 
-  // Create browser context: use device profile if set, otherwise desktop defaults
-  const contextOptions: Parameters<typeof browser.newContext>[0] = deviceOptions
-    ? {
-        ...deviceOptions,
-        acceptDownloads: true,
-        locale,
-        timezoneId,
-      }
-    : {
-        userAgent: desktopUserAgent,
-        viewport: { width: viewportWidth, height: viewportHeight },
-        deviceScaleFactor,
-        acceptDownloads: true,
-        locale,
-        timezoneId,
-      };
+    // Create browser context: use device profile if set, otherwise desktop defaults
+    const contextOptions: Parameters<typeof browser.newContext>[0] = deviceOptions
+      ? {
+          ...deviceOptions,
+          acceptDownloads: true,
+          locale,
+          timezoneId,
+        }
+      : {
+          viewport: { width: viewportWidth, height: viewportHeight },
+          deviceScaleFactor,
+          acceptDownloads: true,
+          locale,
+          timezoneId,
+        };
 
-  context = await createVerifiedBrowserContext(browser, contextOptions);
-
-  // Create the main page
-  page = await context.newPage();
-
-  // Initialize page manager to handle popups and target="_blank" links
-  pageManager = new PageManager(context, page);
-  await pageManager.setup();
-
-  // Navigate to blank page
-  await page.goto('about:blank');
-
-  if (gpuMode !== 'off') {
-    const renderer = await page.evaluate(() => {
-      const canvas = document.createElement('canvas');
-      const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-      if (!gl) {
-        return '';
-      }
-      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
-      return debugInfo
-        ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL))
-        : String(gl.getParameter(gl.RENDERER));
+    context = await createVerifiedBrowserContext(browser, {
+      ...contextOptions,
+      userAgent: identity.userAgent,
+      isMobile: identity.isMobile,
+      hasTouch: identity.hasTouch,
     });
 
-    if (!isGpuRendererCompatible(gpuMode, renderer)) {
-      await page.close().catch(() => {});
-      await context.close().catch(() => {});
-      await browser.close().catch(() => {});
-      page = null;
-      context = null;
-      browser = null;
-      throw new Error(`Requested GPU mode '${gpuMode}' but Chromium reported an incompatible renderer: ${renderer || 'unavailable'}`);
+    await configureIdentityContext(context, identity);
+
+    // Create the main page
+    page = await context.newPage();
+    await bridge.ready(page);
+
+    // Initialize page manager to handle popups and target="_blank" links
+    pageManager = new PageManager(context, page);
+    await pageManager.setup();
+
+    // Navigate to blank page
+    await page.goto('about:blank');
+
+    if (gpuMode !== 'off') {
+      const renderer = await page.evaluate(() => {
+        const canvas = document.createElement('canvas');
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+        if (!gl) {
+          return '';
+        }
+        const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+        return debugInfo
+          ? String(gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL))
+          : String(gl.getParameter(gl.RENDERER));
+      });
+
+      if (!isGpuRendererCompatible(gpuMode, renderer)) {
+        await page.close().catch(() => {});
+        await context.close().catch(() => {});
+        await browser.close().catch(() => {});
+        page = null;
+        context = null;
+        browser = null;
+        throw new Error(`Requested GPU mode '${gpuMode}' but Chromium reported an incompatible renderer: ${renderer || 'unavailable'}`);
+      }
+      console.error(`[System] GPU renderer: ${renderer}`);
     }
-    console.error(`[System] GPU renderer: ${renderer}`);
+
+    currentIdentity = identity;
+    appliedDeviceProfile = currentDeviceProfile;
+    console.error('[System] Browser initialized');
+
+    return { browser, context, page, pageManager };
+  } catch (error) {
+    await browser?.close().catch(() => {});
+    browser = null;
+    context = null;
+    page = null;
+    throw error;
   }
-
-  console.error('[System] Browser initialized');
-
-  return { browser, context, page, pageManager };
 }
 
 // Attach crash/disconnect handlers to the CURRENT page/browser so a crash can
@@ -203,19 +220,43 @@ async function guardedResetBrowser(): Promise<void> {
 }
 
 // Set device profile and reset browser
-async function setDeviceProfile(profileName: string | null): Promise<void> {
+function setDeviceProfile(profileName: string | null): Promise<void> {
   // Validate the profile name before resetting
   resolveDeviceProfile(profileName);
+  return enqueueConfigurationChange(async () => {
+    const previousProfile = currentDeviceProfile;
+    currentDeviceProfile = profileName;
+    try {
+      await guardedResetBrowser();
+    } catch (error) {
+      // Roll back profile state on failure
+      currentDeviceProfile = previousProfile;
+      await guardedResetBrowser().catch(recoveryError => console.error('[Identity] Device rollback failed:', recoveryError));
+      throw error;
+    }
+  });
+}
 
-  const previousProfile = currentDeviceProfile;
-  currentDeviceProfile = profileName;
-  try {
-    await guardedResetBrowser();
-  } catch (error) {
-    // Roll back profile state on failure
-    currentDeviceProfile = previousProfile;
-    throw error;
-  }
+// Serialize configuration changes before mutating the effective identity.
+let identityChange: Promise<void> = Promise.resolve();
+function enqueueConfigurationChange(operation: () => Promise<void>): Promise<void> {
+  const change = identityChange.then(operation);
+  identityChange = change.catch(() => {});
+  return change;
+}
+function setIdentity(userAgent: string | null): Promise<void> {
+  if (userAgent !== null) deriveBrowserIdentity(userAgent);
+  return enqueueConfigurationChange(async () => {
+    const previous = customUserAgent;
+    customUserAgent = userAgent;
+    try {
+      await guardedResetBrowser();
+    } catch (error) {
+      customUserAgent = previous;
+      await guardedResetBrowser().catch(recoveryError => console.error('[Identity] Rollback failed:', recoveryError));
+      throw error;
+    }
+  });
 }
 
 // Resolve the watchdog polling interval from FUBA_BROWSER_WATCHDOG_INTERVAL_MS.
@@ -231,7 +272,7 @@ function resolveWatchdogIntervalMs(): number | undefined {
 
 // Get current device profile name
 function getDeviceProfile(): string | null {
-  return currentDeviceProfile;
+  return appliedDeviceProfile;
 }
 
 async function main() {
@@ -288,9 +329,11 @@ async function main() {
   // can't be misread as a crash by the handlers attached above.
   const apiPort = process.env.API_PORT || 39000;
   await startApiServer(Number(apiPort), browserController, snapshotGenerator, {
-    resetBrowser: guardedResetBrowser,
+    resetBrowser: () => enqueueConfigurationChange(guardedResetBrowser),
     setDeviceProfile,
     getDeviceProfile,
+    setIdentity,
+    getIdentity: () => currentIdentity,
     vncPasswordManager: vncPasswordManager ?? undefined,
   });
 
