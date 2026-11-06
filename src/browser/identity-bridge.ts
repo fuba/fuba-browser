@@ -2,6 +2,7 @@ import { createServer } from 'node:net';
 import type { Page } from 'playwright';
 import type { BrowserIdentity } from './identity.js';
 import { applyIdentity } from './identity-script.js';
+import { identityHeaders } from './identity-headers.js';
 
 /** Reserve an ephemeral loopback port; Chromium binds it immediately after launch. */
 export async function reserveDebugPort(): Promise<number> {
@@ -49,6 +50,9 @@ export async function connectIdentityBridge(port: number, identity: BrowserIdent
     });
   }
   async function initialize(sessionId: string, targetInfo: {type: string; targetId: string}) {
+    if (targetInfo.type === 'page' || targetInfo.type === 'iframe') {
+      await send('Fetch.enable', {patterns:[{urlPattern:'*',requestStage:'Request'}]}, sessionId);
+    }
     await send('Network.setUserAgentOverride', {
       userAgent: identity.userAgent, platform: identity.platform,
       ...(identity.metadata ? {userAgentMetadata: identity.metadata} : {}),
@@ -68,6 +72,18 @@ export async function connectIdentityBridge(port: number, identity: BrowserIdent
       if (!request) return;
       clearTimeout(request.timer); pending.delete(message.id);
       if (message.error) request.reject(new Error(`${request.method}: ${message.error.message}`)); else request.resolve(message.result);
+    } else if (message.method === 'Fetch.requestPaused') {
+      // CDP Fetch overrides apply to this request only, unlike Playwright's
+      // sticky route headers. Each redirect hop starts with Chromium's headers,
+      // after its native credential stripping and cookie selection.
+      void send('Fetch.continueRequest', {
+        requestId: message.params.requestId,
+        headers: identityHeaders(message.params.request.headers, identity),
+      }, message.sessionId).catch(error => {
+        if (!closing && !/Session with given id not found|Target closed|Invalid InterceptionId/.test(String(error))) {
+          failure = error; onFailure(error);
+        }
+      });
     } else if (message.method === 'Target.attachedToTarget') {
       const {sessionId, targetInfo} = message.params;
       const task = initialize(sessionId, targetInfo);

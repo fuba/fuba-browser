@@ -20,8 +20,9 @@ Tabs and the current in-memory session are discarded on reset.
 
 Startup overrides use `FUBA_BROWSER_USER_AGENT`. Custom UA takes precedence over
 the profile UA; profile viewport/scale remain unchanged. SharedWorker and Service
-Worker identity consistency are not guaranteed. Request normalization disables
-the HTTP cache. See [identity configuration and limits](IDENTITY.md).
+Worker identity consistency are not guaranteed. Header normalization is scoped
+to each CDP Fetch request and preserves Chromium's cross-origin credential
+stripping. See [identity configuration and limits](IDENTITY.md).
 
 ## Health Check
 
