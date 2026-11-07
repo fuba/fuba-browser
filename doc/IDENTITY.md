@@ -12,7 +12,9 @@ The literal User-Agent is the source of the advertised browser identity. The def
 - Browser resets close tabs and discard the current in-memory session. Save authentication state first when needed. Runtime overrides last until process restart; use the environment variable for persistent startup configuration.
 - Invalid, unsupported, empty, non-ASCII or control-character input is rejected with HTTP 400 before resetting. Startup configuration with such a UA fails startup.
 
-Supported identity parsing covers Windows, macOS, Linux, Chrome OS, Android and iOS; browser families include Chrome/Chromium, Edge, Firefox and Safari. This is identity emulation, not a change of browser engine.
+Supported identity parsing covers Windows, macOS, Linux, Chrome OS, Android and iOS; browser families include Chrome/Chromium, Edge, Firefox and Safari. Legacy built-in descriptors for BB10/PlayBook, MeeGo/NokiaBrowser, Kindle Silk and Windows Phone/IE Mobile are also accepted, preserving their literal UA and mobile/touch capabilities. They do not advertise Chromium Client Hints, even when a Windows Phone UA contains Android/Chrome compatibility tokens. Legacy platform values use deterministic mobile fallbacks and unknown vendor values remain empty; this is identity emulation, not a change of browser engine.
+
+All device descriptors in the pinned Playwright catalog are covered by compatibility tests, including landscape variants. Profile identity compatibility is checked before browser reset. A future unsupported descriptor is excluded from `/api/device/profiles` and rejected with HTTP 400 before invoking the reset callback; it cannot tear down an active session merely by being selected.
 
 ## Consistency
 

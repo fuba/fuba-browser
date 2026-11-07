@@ -27,11 +27,26 @@ export function deriveBrowserIdentity(userAgent: string): BrowserIdentity {
   }
   const ios = /iPhone|iPad|iPod/.test(userAgent);
   const android = /Android/.test(userAgent);
-  const mobile = ios || android;
+  const windowsPhone = /Windows Phone/.test(userAgent);
+  const blackberry = /BB10|PlayBook/.test(userAgent);
+  const meego = /MeeGo/.test(userAgent);
+  const silk = /Silk\//.test(userAgent);
+  const legacyMobile = windowsPhone || blackberry || meego || silk;
+  const mobile = ios || android || legacyMobile;
   let platform: string;
   let os: string;
   let version: string;
-  if (ios) {
+  if (windowsPhone) {
+    platform = 'Win32'; os = 'Windows Phone';
+    version = userAgent.match(/Windows Phone ([\d.]+)/)?.[1] || '';
+  } else if (blackberry) {
+    platform = /PlayBook/.test(userAgent) ? 'PlayBook' : 'BlackBerry';
+    os = /PlayBook/.test(userAgent) ? 'RIM Tablet OS' : 'BlackBerry';
+    version = userAgent.match(/RIM Tablet OS ([\d.]+)/)?.[1] || '';
+  } else if (meego || silk) {
+    // Legacy descriptors lack CPU detail; retain a deterministic mobile platform.
+    platform = 'Linux armv7l'; os = meego ? 'MeeGo' : 'Android'; version = '';
+  } else if (ios) {
     platform = /iPad/.test(userAgent) ? 'iPad' : /iPod/.test(userAgent) ? 'iPod' : 'iPhone';
     os = 'iOS';
     version = userAgent.match(/OS ([\d_]+)/)?.[1]?.replaceAll('_', '.') || '';
@@ -54,15 +69,17 @@ export function deriveBrowserIdentity(userAgent: string): BrowserIdentity {
   } else {
     throw new Error('Unsupported UA operating system');
   }
-  const chrome = !ios && userAgent.match(/(?:Chrome|Chromium)\/(\d+\.\d+\.\d+\.\d+)/);
+  // Windows Phone embeds Android/Chrome compatibility tokens, not a Chromium identity.
+  const chrome = !ios && !legacyMobile && userAgent.match(/(?:Chrome|Chromium)\/(\d+\.\d+\.\d+\.\d+)/);
   const firefox = /Firefox\//.test(userAgent);
   const safari = /Version\/[\d.]+.*Safari\//.test(userAgent);
-  if (!chrome && !firefox && !safari && !/CriOS\/|FxiOS\//.test(userAgent)) {
+  const legacyBrowser = (blackberry && safari) || (meego && /NokiaBrowser\//.test(userAgent)) || silk || (windowsPhone && /IEMobile\/|Edge\//.test(userAgent));
+  if (!chrome && !firefox && !safari && !legacyBrowser && !/CriOS\/|FxiOS\//.test(userAgent)) {
     throw new Error('Unsupported UA browser: expected Chrome, Chromium, Edge, Firefox or Safari');
   }
   const identity: BrowserIdentity = {
     userAgent, platform,
-    vendor: firefox || /FxiOS\//.test(userAgent) ? '' : chrome ? 'Google Inc.' : 'Apple Computer, Inc.',
+    vendor: legacyMobile || firefox || /FxiOS\//.test(userAgent) ? '' : chrome ? 'Google Inc.' : 'Apple Computer, Inc.',
     isMobile: mobile, hasTouch: mobile,
   };
   if (chrome) {
