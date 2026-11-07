@@ -1,12 +1,13 @@
 import { Router, Request, Response } from 'express';
 import { resolveDeviceProfile, listDeviceProfiles } from '../../config/device-profiles.js';
 import { getBrowserConfig } from '../../config/browser-config.js';
+import type { GetIdentityFn } from './identity.js';
 
 export type SetDeviceProfileFn = (profileName: string | null) => Promise<void>;
 export type GetDeviceProfileFn = () => string | null;
 
 // Build the current device info response
-function buildDeviceInfo(profileName: string | null): {
+function buildDeviceInfo(profileName: string | null, getIdentity: GetIdentityFn): {
   profile: string;
   viewport: { width: number; height: number };
   userAgent: string;
@@ -15,11 +16,15 @@ function buildDeviceInfo(profileName: string | null): {
   hasTouch: boolean;
 } {
   const deviceOptions = resolveDeviceProfile(profileName);
+  const identity = getIdentity();
 
   if (deviceOptions) {
     return {
       profile: profileName!,
       ...deviceOptions,
+      userAgent: identity.userAgent,
+      isMobile: identity.isMobile,
+      hasTouch: identity.hasTouch,
     };
   }
 
@@ -28,23 +33,25 @@ function buildDeviceInfo(profileName: string | null): {
   return {
     profile: 'desktop',
     viewport: { width: config.viewportWidth, height: config.viewportHeight },
-    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36',
+    userAgent: identity.userAgent,
     deviceScaleFactor: config.deviceScaleFactor,
-    isMobile: false,
-    hasTouch: false,
+    isMobile: identity.isMobile,
+    hasTouch: identity.hasTouch,
   };
 }
 
 export function deviceRoutes(
   setDeviceProfile: SetDeviceProfileFn,
   getDeviceProfile: GetDeviceProfileFn,
+  getIdentity: GetIdentityFn,
 ): Router {
   const router = Router();
+  const currentInfo = () => buildDeviceInfo(getDeviceProfile(), getIdentity);
 
   // GET /api/device - Get current device profile info
   router.get('/device', (_req: Request, res: Response) => {
     try {
-      const info = buildDeviceInfo(getDeviceProfile());
+      const info = currentInfo();
       res.json({ success: true, data: info });
     } catch (error) {
       res.status(500).json({ success: false, error: (error as Error).message });
@@ -84,7 +91,7 @@ export function deviceRoutes(
     try {
       await setDeviceProfile(profileName);
 
-      const info = buildDeviceInfo(profileName);
+      const info = currentInfo();
       res.json({
         success: true,
         data: info,

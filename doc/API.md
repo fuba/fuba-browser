@@ -5,6 +5,25 @@
 http://localhost:39000
 ```
 
+## Browser Identity
+
+### GET /api/identity
+Returns `{"success":true,"data":{...}}` containing the applied `userAgent`,
+`platform`, `vendor`, `isMobile`, `hasTouch`, and optional Chromium `metadata`.
+
+### POST /api/identity
+Accepts `{"userAgent":"<literal UA>"}` or `{"userAgent":null}`. A successful
+change resets the browser and returns the applied identity. `null` clears the
+override and restores the active device-profile UA or Windows Chrome default.
+Invalid input returns HTTP 400 before resetting; application failures return 500.
+Tabs and the current in-memory session are discarded on reset.
+
+Startup overrides use `FUBA_BROWSER_USER_AGENT`. Custom UA takes precedence over
+the profile UA; profile viewport/scale remain unchanged. SharedWorker and Service
+Worker identity consistency are not guaranteed. Header normalization is scoped
+to each CDP Fetch request and preserves Chromium's cross-origin credential
+stripping. See [identity configuration and limits](IDENTITY.md).
+
 ## Health Check
 
 ### GET /health
