@@ -18,6 +18,7 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 - **Storage management** - localStorage, sessionStorage access
 - **Authentication state** - Save/load browser state (cookies, storage)
 - **Debug tools** - Console logs, errors, JavaScript eval, element highlight
+- **UA-derived identity** - Configure UA, Client Hints and navigator values together via `/api/identity` ([scope and limitations](doc/IDENTITY.md))
 - **Network inspection/export API** - Request log, response body fetch, and file save (`/api/network*`)
 - **Download capture API** - Intercept and retrieve browser-initiated file downloads (`/api/download*`)
 - **Web VNC** for remote GUI access

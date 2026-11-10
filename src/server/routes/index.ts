@@ -17,6 +17,7 @@ import { downloadRoutes } from './download.js';
 import { stateRoutes } from './state.js';
 import { systemRoutes } from './system.js';
 import { deviceRoutes } from './device.js';
+import { identityRoutes } from './identity.js';
 import { webVncRoutes } from './web-vnc.js';
 import { docsRoutes } from './docs.js';
 import { ServerOptions } from '../index.js';
@@ -78,8 +79,12 @@ export function setupRoutes(
   }
 
   // Device emulation routes (switch between desktop/mobile profiles)
-  if (options.setDeviceProfile && options.getDeviceProfile) {
-    app.use('/api', deviceRoutes(options.setDeviceProfile, options.getDeviceProfile));
+  if (options.setDeviceProfile && options.getDeviceProfile && options.getIdentity) {
+    app.use('/api', deviceRoutes(options.setDeviceProfile, options.getDeviceProfile, options.getIdentity));
+  }
+
+  if (options.setIdentity && options.getIdentity) {
+    app.use('/api', identityRoutes(options.setIdentity, options.getIdentity));
   }
 
   // Web VNC token routes (requires both tokenStore and vncPasswordManager)

@@ -6,6 +6,7 @@ import { setupRoutes } from './routes/index.js';
 import { errorHandler } from './middleware/error.js';
 import { ResetBrowserFn } from './routes/system.js';
 import { SetDeviceProfileFn, GetDeviceProfileFn } from './routes/device.js';
+import type { SetIdentityFn, GetIdentityFn } from './routes/identity.js';
 import { TokenStore } from './token-store.js';
 import { VncPasswordManager } from './vnc-password-manager.js';
 import { discoveryRoutes } from './routes/discovery.js';
@@ -84,6 +85,8 @@ export function buildWebVncRedirectUrl(req: Request, vncWebPort: number, vncPass
 }
 
 export interface ServerOptions {
+  setIdentity?: SetIdentityFn;
+  getIdentity?: GetIdentityFn;
   resetBrowser?: ResetBrowserFn;
   setDeviceProfile?: SetDeviceProfileFn;
   getDeviceProfile?: GetDeviceProfileFn;

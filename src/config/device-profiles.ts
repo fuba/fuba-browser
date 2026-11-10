@@ -1,6 +1,7 @@
 // Device profile resolution using Playwright's built-in device descriptors
 
 import { devices } from 'playwright';
+import { deriveBrowserIdentity } from '../browser/identity.js';
 
 export interface DeviceProfileOptions {
   viewport: { width: number; height: number };
@@ -25,6 +26,8 @@ export function resolveDeviceProfile(name: string | null): DeviceProfileOptions 
   }
 
   const device = devices[name];
+  // Preflight identity compatibility before a caller tears down a live session.
+  deriveBrowserIdentity(device.userAgent);
   return {
     viewport: device.viewport,
     userAgent: device.userAgent,
@@ -36,8 +39,12 @@ export function resolveDeviceProfile(name: string | null): DeviceProfileOptions 
 
 /**
  * List all available device profile names.
- * Includes "desktop" as the first entry, followed by all Playwright built-in device names.
+ * Includes "desktop" followed by identity-compatible Playwright built-in names.
+ * All descriptors in the currently pinned Playwright catalog are supported.
  */
 export function listDeviceProfiles(): string[] {
-  return ['desktop', ...Object.keys(devices)];
+  return ['desktop', ...Object.keys(devices).filter(name => {
+    try { deriveBrowserIdentity(devices[name].userAgent); return true; }
+    catch { return false; }
+  })];
 }
