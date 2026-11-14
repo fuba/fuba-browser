@@ -1,3 +1,4 @@
+import { webMcpRoutes } from './webmcp.js';
 import { Express } from 'express';
 import { BrowserController } from '../../browser/controller.js';
 import { SnapshotGenerator } from '../../browser/snapshot.js';
@@ -28,6 +29,9 @@ export function setupRoutes(
   snapshotGenerator: SnapshotGenerator,
   options: ServerOptions = {}
 ) {
+  const webMcp = webMcpRoutes(browserController.webMcp);
+  app.use('/mcp', webMcp.router);
+
   // Browser control routes
   app.use('/api', browserRoutes(browserController));
 
@@ -91,4 +95,5 @@ export function setupRoutes(
   if (options.tokenStore && options.vncPasswordManager) {
     app.use('/api', webVncRoutes(options.tokenStore, options.vncPasswordManager));
   }
+  return { close: webMcp.close };
 }

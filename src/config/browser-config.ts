@@ -99,3 +99,14 @@ export function getBrowserConfig(): BrowserConfig {
 
   return { headless, deviceScaleFactor, locale, timezoneId, viewportWidth, viewportHeight, proxy, deviceProfile, gpuMode };
 }
+
+/** Merge experimental WebMCP flags without overriding hardware GPU features. */
+export function withWebMcpLaunchArgs(args: string[]): string[] {
+  const features = new Set(['WebMCP', 'WebMCPTesting']);
+  for (const arg of args) {
+    if (arg.startsWith('--enable-features=')) {
+      for (const feature of arg.slice('--enable-features='.length).split(',')) features.add(feature);
+    }
+  }
+  return [...args.filter(arg => !arg.startsWith('--enable-features=')), `--enable-features=${[...features].join(',')}`];
+}
