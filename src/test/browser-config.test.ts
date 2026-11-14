@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   getBrowserConfig,
+  withWebMcpLaunchArgs,
   getGpuLaunchArgs,
   isHardwareRenderer,
   isGpuRendererCompatible,
@@ -302,5 +303,12 @@ describe('getBrowserConfig', () => {
         },
       });
     });
+  });
+});
+
+describe('WebMCP launch features', () => {
+  it('keeps Vulkan and WebMCP in a single feature flag', () => {
+    expect(withWebMcpLaunchArgs(getGpuLaunchArgs('amd'))).toContain('--enable-features=WebMCP,WebMCPTesting,Vulkan');
+    expect(withWebMcpLaunchArgs([])).toEqual(['--enable-features=WebMCP,WebMCPTesting']);
   });
 });

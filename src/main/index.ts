@@ -3,7 +3,7 @@ import { startApiServer } from '../server/index.js';
 import { BrowserController } from '../browser/controller.js';
 import { SnapshotGenerator } from '../browser/snapshot.js';
 import { PageManager } from '../browser/page-manager.js';
-import { getBrowserConfig, getGpuLaunchArgs, isGpuRendererCompatible } from '../config/browser-config.js';
+import { getBrowserConfig, getGpuLaunchArgs, isGpuRendererCompatible, withWebMcpLaunchArgs } from '../config/browser-config.js';
 import { resolveDeviceProfile } from '../config/device-profiles.js';
 import { VncPasswordManager } from '../server/vnc-password-manager.js';
 import { buildChromeUserAgent } from './user-agent.js';
@@ -40,13 +40,13 @@ async function initializeBrowser() {
   const launchOptions: Parameters<typeof chromium.launch>[0] = {
     headless,
     executablePath: process.env.FUBA_BROWSER_EXECUTABLE_PATH || undefined,
-    args: [
+    args: withWebMcpLaunchArgs([
       '--no-sandbox',
       '--disable-setuid-sandbox',
       '--disable-dev-shm-usage',
       '--disable-blink-features=AutomationControlled',
       ...getGpuLaunchArgs(gpuMode),
-    ],
+    ]),
   };
 
   // Add proxy configuration if specified
