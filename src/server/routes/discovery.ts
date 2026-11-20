@@ -5,6 +5,7 @@ interface ServiceDiscoveryPayload {
   version: string;
   endpoints: {
     health: string;
+    mcp: string;
     api: string;
     llmsTxt: string;
     docs: {
@@ -37,6 +38,7 @@ function buildServiceDiscoveryPayload(version: string): ServiceDiscoveryPayload 
     version,
     endpoints: {
       health: '/health',
+      mcp: '/mcp',
       api: '/api',
       llmsTxt: '/llms.txt',
       docs: {
@@ -46,6 +48,7 @@ function buildServiceDiscoveryPayload(version: string): ServiceDiscoveryPayload 
       },
     },
     hints: [
+      'Connect an MCP client to /mcp to use WebMCP tools from the current browser page.',
       'Use GET /api/docs to list available documentation IDs.',
       'Use GET /api/docs/{docId}?format=markdown for one document.',
       'Use GET /api/docs/llm?format=markdown for an LLM-ready bundle.',
@@ -80,6 +83,8 @@ function buildLlmsTxt(version: string): string {
     '- /api/docs',
     '- /api/docs/{docId}?format=markdown',
     '- /api/docs/llm?format=markdown',
+    '',
+    'WebMCP bridge (Streamable HTTP): /mcp',
     '',
     'Discovery endpoints:',
     '- /',

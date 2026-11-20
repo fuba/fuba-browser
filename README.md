@@ -8,6 +8,7 @@ Fuba Browser is a Chromium-based browser automation tool that runs in Docker and
 
 ## Features
 
+- **WebMCP bridge** exposes page tools to MCP clients over Streamable HTTP ([guide](doc/WEBMCP.md))
 - **REST API** for browser control (navigation, clicking, typing, scrolling)
 - **CLI tool (`fbb`)** for command-line automation
 - **LLM docs endpoint** (`/api/docs`) with bundled markdown export
@@ -216,6 +217,30 @@ fbb state save auth.json
 # Load authentication state
 fbb state load auth.json --navigate
 ```
+
+## WebMCP to MCP bridge
+
+Connect a Streamable HTTP MCP client to `http://localhost:39000/mcp`, then open a
+WebMCP-enabled page using the existing navigation API or browser UI. The page's
+tools appear directly in MCP `tools/list`, with their original names and input
+schemas. `tools/call` executes them in the logged-in browser page.
+
+```json
+{
+  "mcpServers": {
+    "fuba-browser": {
+      "type": "http",
+      "url": "http://localhost:39000/mcp"
+    }
+  }
+}
+```
+
+The bridge reports tool changes through `notifications/tools/list_changed`.
+It supports native `document.modelContext` and the legacy
+`navigator.modelContextTesting` API. Chromium's WebMCP feature flags are enabled
+at browser startup. See [WebMCP bridge](doc/WEBMCP.md) for lifecycle, frame handling,
+and access controls.
 
 ## CLI Commands
 

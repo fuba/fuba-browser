@@ -17,6 +17,7 @@ describe('Discovery Routes', () => {
     expect(response.body.data.endpoints.docs.index).toBe('/api/docs');
     expect(response.body.data.endpoints.docs.bundle).toBe('/api/docs/llm');
     expect(response.body.data.endpoints.llmsTxt).toBe('/llms.txt');
+    expect(response.body.data.endpoints.mcp).toBe('/mcp');
   });
 
   it('returns API discovery at GET /api', async () => {

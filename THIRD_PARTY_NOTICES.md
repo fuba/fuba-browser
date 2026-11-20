@@ -87,6 +87,7 @@ Source packages are available from the Debian archive: https://packages.debian.o
 
 | Package | License | Project URL |
 |---------|---------|-------------|
+| @modelcontextprotocol/sdk | MIT | https://github.com/modelcontextprotocol/typescript-sdk |
 | express | MIT | https://github.com/expressjs/express |
 | cors | MIT | https://github.com/expressjs/cors |
 | turndown | MIT | https://github.com/mixmark-io/turndown |

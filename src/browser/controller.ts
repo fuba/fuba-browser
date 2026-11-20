@@ -1,3 +1,4 @@
+import { WebMcpBridge } from './webmcp.js';
 import { Page, BrowserContext, Cookie, Download, Request as PlaywrightRequest, Response as PlaywrightResponse } from 'playwright';
 import {
   ElementInfo,
@@ -26,6 +27,7 @@ export interface BrowserHealthCheckResult {
 }
 
 export class BrowserController {
+  readonly webMcp = new WebMcpBridge(() => this.page);
   private static readonly MAX_NETWORK_REQUESTS = 500;
   private page: Page;
   private context: BrowserContext;

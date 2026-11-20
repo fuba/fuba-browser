@@ -160,7 +160,7 @@ export async function startApiServer(
   });
 
   // Setup routes
-  setupRoutes(app, browserController, snapshotGenerator, { ...options, tokenStore });
+  const routes = setupRoutes(app, browserController, snapshotGenerator, { ...options, tokenStore });
 
   // Error handler
   app.use(errorHandler);
@@ -169,6 +169,6 @@ export async function startApiServer(
     app.listen(port, () => {
       console.log(`REST API server listening on port ${port}`);
       resolve(app);
-    }).on('error', reject);
+    }).on('error', reject).on('close', () => { void routes.close(); });
   });
 }
